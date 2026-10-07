@@ -175,6 +175,10 @@ export default function HomeScreen() {
         </Card>
       )}
 
+      {people && people.length > 0 && (
+        <Button title="Share with a sitter" icon="share" onPress={() => router.push('/share')} style={styles.share} />
+      )}
+
       <View style={[styles.row, { alignItems: 'stretch' }]}>
         <Pressable
           accessibilityRole="button"
@@ -218,6 +222,7 @@ const styles = StyleSheet.create({
   bigCard: { borderRadius: radius.big, padding: 20, gap: 14 },
   datePill: { backgroundColor: colors.chip, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   itemIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  share: { height: 56, borderRadius: 28 },
   tile: { flex: 1, borderRadius: radius.card, padding: 16, gap: 4 },
   pressed: { opacity: 0.7 },
 });

@@ -50,6 +50,7 @@ export default function RootLayout() {
         />
         <Stack.Screen name="emergency-edit" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="share" />
       </Stack>
     </SQLiteProvider>
   );

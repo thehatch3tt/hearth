@@ -7,6 +7,63 @@ const shapes = {
   back: <Path d="M15 6l-6 6 6 6" />,
   chevron: <Path d="M9 6l6 6-6 6" />,
   down: <Path d="M6 9l6 6 6-6" />,
+  share: (
+    <>
+      <Path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
+      <Path d="M16 6l-4-4-4 4" />
+      <Path d="M12 2v13" />
+    </>
+  ),
+  wifi: (
+    <>
+      <Path d="M2 8.5a15 15 0 0 1 20 0" />
+      <Path d="M5 12a10.5 10.5 0 0 1 14 0" />
+      <Path d="M8.5 15.5a5.5 5.5 0 0 1 7 0" />
+      <Path d="M12 19h.01" />
+    </>
+  ),
+  bell: (
+    <>
+      <Path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <Path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" />
+    </>
+  ),
+  key: (
+    <>
+      <Circle cx={7.5} cy={15.5} r={4.5} />
+      <Path d="M10.7 12.3L21 2M17 6l3 3M14 9l2 2" />
+    </>
+  ),
+  aid: (
+    <>
+      <Rect x={3} y={6} width={18} height={14} rx={3} />
+      <Path d="M9 6V4h6v2M12 10v6M9 13h6" />
+    </>
+  ),
+  bolt: <Path d="M13 2L4 14h7l-1 8 9-12h-7z" />,
+  drop: <Path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />,
+  tv: (
+    <>
+      <Rect x={2} y={6} width={20} height={13} rx={2} />
+      <Path d="M8 2l4 4 4-4" />
+    </>
+  ),
+  thermometer: <Path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z" />,
+  paw: (
+    <>
+      <Circle cx={6} cy={11} r={1.8} />
+      <Circle cx={9.5} cy={6.5} r={1.8} />
+      <Circle cx={14.5} cy={6.5} r={1.8} />
+      <Circle cx={18} cy={11} r={1.8} />
+      <Path d="M8 17c0-3 2-5 4-5s4 2 4 5a2.5 2.5 0 0 1-4 2 2.5 2.5 0 0 1-4-2z" />
+    </>
+  ),
+  lock: (
+    <>
+      <Rect x={4} y={11} width={16} height={10} rx={2} />
+      <Path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </>
+  ),
   eye: (
     <>
       <Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />

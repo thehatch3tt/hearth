@@ -94,7 +94,6 @@ function PickerBox({
   children,
 }: BoxProps & { shown: string; children: (choose: (value: string) => void) => ReactNode }) {
   const [open, setOpen] = useState(false);
-  const insets = useSafeAreaInsets();
   const choose = (choice: string) => {
     setOpen(false);
     if (choice !== value) onChange(choice);
@@ -113,35 +112,42 @@ function PickerBox({
         <Icon name="down" size={16} color={colors.muted} strokeWidth={2.4} />
       </Pressable>
       {open && (
-        <Modal visible transparent animationType="slide" onRequestClose={() => setOpen(false)} statusBarTranslucent navigationBarTranslucent>
-          <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={() => setOpen(false)} />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.sheetWrap}
-            pointerEvents="box-none">
-            <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-              <View style={styles.grabber} />
-              <View style={styles.header}>
-                <Text weight={900} size={18}>
-                  {title}
-                </Text>
-                <Pressable accessibilityRole="button" onPress={() => setOpen(false)} hitSlop={10}>
-                  <Text weight={700} size={15} color={colors.accentText}>
-                    Cancel
-                  </Text>
-                </Pressable>
-              </View>
-              {children(choose)}
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
+        <BottomSheet title={title} onClose={() => setOpen(false)}>
+          {children(choose)}
+        </BottomSheet>
       )}
     </>
   );
 }
 
+/** A sheet that slides up from the bottom, with a title and Cancel. Draw it only while open. */
+export function BottomSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
+      <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={onClose} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap} pointerEvents="box-none">
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={styles.grabber} />
+          <View style={styles.header}>
+            <Text weight={900} size={18}>
+              {title}
+            </Text>
+            <Pressable accessibilityRole="button" onPress={onClose} hitSlop={10}>
+              <Text weight={700} size={15} color={colors.accentText}>
+                Cancel
+              </Text>
+            </Pressable>
+          </View>
+          {children}
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 /** A small rounded button that can be selected. */
-function Chip({ label, selected, onPress, style }: { label: string; selected?: boolean; onPress: () => void; style?: StyleProp<ViewStyle> }) {
+export function Chip({ label, selected, onPress, style }: { label: string; selected?: boolean; onPress: () => void; style?: StyleProp<ViewStyle> }) {
   return (
     <Pressable
       accessibilityRole="button"

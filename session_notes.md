@@ -86,7 +86,8 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
   - Routine steps are an activity plus optional details (the `note` column, added in database version 2).
   - **Several routines per person** (database version 3): a `routines` table, with each step belonging to one. A new person starts with one empty routine (Bedtime for a child, Daily for an adult). `people.routine_name` is left over and no longer used.
   - **Checking off routine steps:** tap a step on the person's page. `step_checks` records the day, the time and who did it ("Done at 7:12 pm by Matt"). Tap again to undo. Checks start fresh each day. Each routine shows "2 of 5 done" or "All done".
-  - **Passwords and codes (user request):** each house item has a visible "Details" box (`value`) and a separate "Password or code" box (`secret`, added in version 4) that is always hidden. On the page the secret shows as dots with a "Show" button, and goes back to dots when the page is reopened. In the editor it's typed as dots, with an eye button to check it.
+  - **Our home layout (user asked for cleaner and more concise):** one white card listing every item as a row (an outline icon from the label, the label, the details, and the password as dots with an eye button to reveal it). Tap a row to change it in a bottom sheet (`BottomSheet` in `components/Select.tsx`). Under the list, "+ Wi-Fi", "+ Alarm" and similar chips add the usual items that are still missing. "Add" in the header adds anything else.
+  - **Passwords and codes (user request):** each house item has a visible "Details" box (`value`) and a separate "Password or code" box (`secret`, added in version 4) that is always hidden. The secret goes back to dots when the page is reopened. In the sheet it's typed as dots, with an eye button to check it. For Wi-Fi the boxes read "Network name" and "Password".
     - Version 4 moved anything already saved under a password-like label (Wi-Fi, Alarm, Door code, PIN... see `looksSecret` in `db.ts`) into the secret box.
     - The sitter link should keep secrets hidden until tapped too.
   - **Lesson:** a "Hide until tapped" switch was tried first and gave an error on the phone. Version 3 had been changed after the phone already ran it, so the column it needed was missing. Never change a database step once it may have run on a phone, even in testing: add a new step. Version 4 checks which columns exist before adding one.
@@ -99,6 +100,63 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
   - the bundle id
   - icon and splash colors
   - the EAS project
+
+## Sitter links (built 2026-10-07, waiting on Firebase)
+
+The user chose Firebase over packing everything into the link or using Vercel storage.
+
+- **App:** `src/app/share.tsx` ("Link for tonight", opened from "Share with a sitter" on Home).
+  - Who it's for, which pages (people as chips, Our home, Emergency card), a note, and when it stops working (tomorrow 9 am, 3 days, a week).
+  - Then the phone's share sheet opens with the link.
+  - Links still working are listed with "Send again" and "Stop".
+- **How it works:** `src/lib/share.ts`.
+  - `buildSnapshot` gathers the chosen pages (type `Snapshot`, version 1).
+  - `createLink` encrypts them with AES-256-GCM (@noble/ciphers, new random key from expo-crypto) and saves `{v, data, iv, expiresAt, createdAt}` to Firestore `links/{random id}`.
+  - The link is `VIEWER_URL/#<id>.<key>`. The key stays after the `#`, which browsers never send to a server.
+  - The phone remembers sent links in `sitter_links` (database version 5).
+- **Link page:** `viewer/index.html`, one static file for Vercel.
+  - It reads the document through the Firestore REST API and decrypts it with WebCrypto.
+  - It shows: warnings first, "The plan" (routine steps and timed medicine in time order), each person, Around the house (codes hidden until tapped), and Emergency (Call 911, tap-to-call numbers), with an Emergency button pinned at the bottom.
+  - It's built only with text nodes (never innerHTML), and set to noindex and no-referrer.
+- **Rules:** `firebase/firestore.rules`.
+  - Create only in the exact shape, under about 400 KB, ending within 8 days.
+  - Get by id, no listing, no updates, delete by id.
+  - Plus a TTL policy on `links.expiresAt`.
+  - There's no auth: knowing the random id is the permission. Before launch, add App Check so only the real app can create links.
+- **Check:** `node scripts/check-share-crypto.mjs` confirms the app's encryption opens in the browser.
+- **Still to do (the user):**
+  1. Create the Firebase project and a Firestore database.
+  2. Paste the rules and add the TTL policy.
+  3. Add a web app and copy its settings into `.env` (see `.env.example`) and into the `FIREBASE` constant in `viewer/index.html`.
+  4. Deploy `viewer/` to Vercel and put its URL in `.env`.
+
+## Home layouts (2026-10-07)
+
+The user wants Today to be the focus. There are four mockups in a new row on the design canvas ("Home with Today first"):
+- **A, Timeline:** everyone's day in one list with a "Now" line.
+- **B, Next up:** one big card for the next thing due, faces with progress rings, then later today.
+- **C, By person:** a card per person with a progress bar and their next item.
+- **D, Checklist:** Morning, Afternoon and Evening, with filter chips for each person.
+
+All four have a "Share tonight" button.
+
+**Then the user questioned the Soft garden look itself.**
+- Recolors of the bento layout (G–J) were rejected as "only themes, not styles".
+- Four real styles followed (K Transit line, L Editorial, M Notebook, N Chunky). **The user chose L, and asked to make it more like a newspaper than a magazine.**
+
+**Newspaper style (mockups in the canvas row "Newspaper style — every screen", 2026-10-07; not yet approved or built):**
+- **Type:** Playfair Display headlines, Source Serif 4 body text, Libre Franklin small-caps labels.
+- **Nameplate:** "THE CARTER FAMILY HANDBOOK" in Playfair capitals. The user rejected blackletter.
+- **Colors:** newsprint `#F5F2EA` with ink `#121212`. Blue ink `#1D4E89` for main buttons (never black). Red `#B3261E` only for allergies and emergencies. Small colored small-caps tags per person (Ellie `#B8501A`, Max `#1F5FA8`, Grandma `#6B3FA0`).
+- **Shapes:** rules and double rules instead of cards, square checkboxes, 3 px corners.
+- **Front page:** one column (the user rejected two columns). Lead story = next thing due, then "The rest of today", "Also in this edition", the index of sections, Share and Emergency.
+- **Sections:** people are A2/A3/A4, Our home is B1 ("Around the House", boxed classified ads, one column), Emergency is B2 (a red bulletin banner and a phone directory with dotted leaders).
+- **Other screens:** Edit has a grid time picker. The share screen is "Tonight's Edition". The sitter's web page uses the same newspaper style.
+- **Toned down at the user's request ("stylish without being childish"):**
+  - No section numbers, "Classifieds", "Place an ad", "editor's desk" or "Vol./No.". Plain labels: "Our Home", "+ Add", "Edit Ellie", "Words she uses", "Share with a sitter".
+  - The one pun kept is "Tonight's Edition" for the sitter link, because it describes what it is.
+  - One small-caps label style, at 11–12 px minimum (bigger again in the app).
+  - Double rules only under the nameplate and at the bottom of Home and the sitter page.
 
 ## Next steps
 

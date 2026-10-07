@@ -112,7 +112,21 @@ function looksSecret(label: string) {
   return SECRET_WORDS.some((word) => new RegExp(`\\b${word}\\b`).test(text));
 }
 
+/** A sitter link sent from this phone (the copy itself is in Firebase, encrypted). */
+export type SitterLink = {
+  id: number;
+  /** The Firebase document holding the encrypted copy. */
+  doc_id: string;
+  /** Who it was for. */
+  name: string;
+  url: string;
+  /** Milliseconds since 1970. */
+  expires_at: number;
+  created_at: number;
+};
+
 type Tables = {
+  sitter_links: SitterLink;
   people: Person;
   alerts: Alert;
   medicines: Medicine;
@@ -143,7 +157,7 @@ export type Settings = {
 };
 
 // Never change a step once it may have run on a phone (even in testing): add a new step instead.
-const DATABASE_VERSION = 4;
+const DATABASE_VERSION = 5;
 
 /** Runs every time the database opens: turns on foreign keys and brings the tables up to date. */
 export async function setUpDatabase(db: SQLiteDatabase) {
@@ -291,6 +305,20 @@ export async function setUpDatabase(db: SQLiteDatabase) {
       }
     });
     version = 4;
+  }
+
+  if (version === 4) {
+    await db.execAsync(`
+      CREATE TABLE sitter_links (
+        id INTEGER PRIMARY KEY NOT NULL,
+        doc_id TEXT NOT NULL,
+        name TEXT NOT NULL DEFAULT '',
+        url TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+    `);
+    version = 5;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

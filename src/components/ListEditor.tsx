@@ -5,7 +5,7 @@
  */
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import { DaySelect, Select, TimeSelect } from '@/components/Select';
@@ -19,9 +19,9 @@ export type Column = {
   placeholder: string;
   /**
    * `time`: hour, minutes, am/pm. `day`: a calendar. `choice`: from `options`, or type your own.
-   * `text` (the default) and `phone` are typed. `secret` is typed as dots, with an eye to check it.
+   * `text` (the default) and `phone` are typed.
    */
-  kind?: 'text' | 'phone' | 'time' | 'day' | 'choice' | 'secret';
+  kind?: 'text' | 'phone' | 'time' | 'day' | 'choice';
   options?: string[];
   /** For `time`: a first choice meaning "no time" (e.g. medicine given as needed). */
   clearLabel?: string;
@@ -83,17 +83,6 @@ export function ListEditor({
     const size = column.width ? { width: column.width } : { flex: 1 };
     const onChange = (value: string) => save(row, column, value);
 
-    if (column.kind === 'secret') {
-      return (
-        <SecretInput
-          key={`${column.key}:${saved}`}
-          value={saved}
-          onSave={onChange}
-          placeholder={column.placeholder}
-          style={size}
-        />
-      );
-    }
     if (column.kind === 'time') {
       return (
         <TimeSelect
@@ -177,42 +166,6 @@ export function ListEditor({
   );
 }
 
-/** A password box: dots while typing, with an eye button to check what was typed. */
-function SecretInput({
-  value,
-  onSave,
-  placeholder,
-  style,
-}: {
-  value: string;
-  onSave: (text: string) => void;
-  placeholder: string;
-  style: StyleProp<ViewStyle>;
-}) {
-  const [shown, setShown] = useState(false);
-  return (
-    <View style={[styles.secret, style]}>
-      <SavedInput
-        value={value}
-        onSave={onSave}
-        placeholder={placeholder}
-        secureTextEntry={!shown}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={{ flex: 1 }}
-      />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={shown ? 'Hide password' : 'Show password'}
-        onPress={() => setShown(!shown)}
-        hitSlop={6}
-        style={styles.eye}>
-        <Icon name={shown ? 'eyeOff' : 'eye'} size={20} color={colors.muted} />
-      </Pressable>
-    </View>
-  );
-}
-
 /** A short hint under a section's heading. */
 export function Hint({ children }: { children: string }) {
   return (
@@ -225,7 +178,5 @@ export function Hint({ children }: { children: string }) {
 const styles = StyleSheet.create({
   item: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   line: { flexDirection: 'row', gap: 8 },
-  secret: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  eye: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   trash: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
 });
