@@ -82,9 +82,7 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
 
 ## Next steps
 
-1. **The user:**
-   - Create an empty private GitHub repo (e.g. `thehatch3tt/hearth`). The `gh` CLI isn't installed here, so it can't be created from this shell. Then the local repo gets a remote and is pushed.
-   - Create a Firebase project when it's time to start syncing.
+1. **GitHub:** https://github.com/thehatch3tt/hearth (private, branch `master`, pushed 2026-10-07). The `gh` CLI isn't installed here; plain `git push` works. **The user** creates a Firebase project when it's time to start syncing.
 2. **Build the on-device handbook first**, with no accounts:
    - people (kids and parents), the house, the emergency card
    - local storage (expo-sqlite, as in Scripture Loop)
