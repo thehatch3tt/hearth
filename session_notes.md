@@ -20,8 +20,8 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
 ## Mockups
 
 - Design canvas: https://claude.ai/artifact/JAot5UYvpHQ5sRPCyBMucG
-- **Row 1, chosen look (2026-10-07):** Home, a child's page (Ellie), caring for Grandma Ruth, what the sitter sees, and the emergency card.
-- **Row 2:** four other styles (Binder, Soft garden, Bold night, Calm care). The user preferred the original.
+- **Row 1:** Home, a child's page (Ellie), caring for Grandma Ruth, what the sitter sees, and the emergency card. The page layouts still follow these.
+- **Row 2:** four other styles (Binder, Soft garden, Bold night, Calm care). **The app now uses Soft garden (switched 2026-10-07 at the user's request)**, after first being built in the row 1 look.
 - **Row 3, the sharing flow:**
   1. Share Grandma Ruth: care team, one-time link, or PDF.
   2. Choose what Sarah sees: switches per section, plus "Update things" or "Only look".
@@ -30,19 +30,18 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
   5. The care team: members and roles, plus recent updates ("Sarah marked Donepezil given").
   6. Link for tonight: for the sitter. Pick the pages, add a note, and choose when the link stops working.
 
-### The look
+### The look (Soft garden, all in `src/lib/theme.ts`)
 
-- **Type:** Manrope (400–800).
+- **Type:** Nunito (400–900). Headings are 900.
 - **Colors:**
-  - Background `#F3F4F6`, cards white with an 18–22 px radius, ink `#15171C`, muted text `#5B6070`.
-  - Accent dark orange `#C2410C`, dark enough for white text on it.
-- **A color per person:**
-  - Ellie: blue, `#DCE6FB` with `#2A55B8`.
-  - Max: teal, `#D6F0EA` with `#0B6E61`.
-  - Grandma Ruth: purple, `#ECE2F8` with `#6236A8`.
-- **Alerts:** allergy red `#FDE7E2` with `#A3260F`. The emergency screen is dark (`#1A0F0E`) with a big red "Call 911".
+  - Pale sage background `#E8EEE4`, white cards with a 24–28 px radius, deep green ink `#1F3B2D`, muted text `#4D6B58`.
+  - Main buttons are garden green `#2F5A43`, not black.
+- **Heading:** "[Family name] Family Handbook" in big letters, with "Good evening, [your name]" above it.
+- **Home:** a row of round faces (a coral ring marks anyone with an allergy or warning), then a Today card (medicine still due, appointments this week), then Our home and Emergency (pink) tiles.
+- **A pastel per person:** peach, sky, lavender, sage, rose, butter. The first version's names (blue, teal...) still map to these.
+- **Alerts:** `#FBE3DD` with `#8E2414`. The emergency screen stays dark (`#1A0F0E`) with a big red "Call 911".
 - **Icons:** outline icons, never emoji.
-- **Buttons:** the mockups use some solid black buttons. In Scripture Loop the user didn't want solid black buttons (main actions used the accent color), so check before copying that into the real app.
+- **Buttons:** the user didn't want solid black buttons in Scripture Loop, so main actions use a color.
 
 ## Data and sharing (decided 2026-10-07)
 
@@ -72,8 +71,25 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
 ## The project
 
 - Expo SDK 57 (create-expo-app default template, 2026-10-07): Expo Router in `src/app/`, typed routes, React Compiler.
-- The template screens (`index.tsx`, `explore.tsx`) are still in place. Replace them with the real tabs.
 - `AGENTS.md` / `CLAUDE.md` come from the template: read the versioned Expo docs before using any Expo API.
+- **The on-device handbook (built 2026-10-07, no accounts):**
+  - One stack with no tabs yet. The mockup's Today / Helpers / Papers tabs wait until there's something to put in them.
+  - Screens: Home (`index`), a person's page (`person/[id]`), add/edit a person (`person/edit`), `house`, `emergency` (dark, Call 911, tap a number to call), `emergency-edit`, `settings` (family name, your name for "given by").
+  - Data: expo-sqlite, `hearth.db`. Tables and migrations in `src/lib/db.ts` (`PRAGMA user_version`). Add a new `if (version === 1)` step for any change; never edit the version-0 tables.
+  - `useQuery` re-reads after every save (a simple change counter, no per-table tracking).
+  - Editing: `ListEditor` (rows of boxes, trash button, "+ Add").
+  - **Pick lists (user request):** times (every 15 min), dates (the next 6 months) and set choices open a bottom sheet (`components/Select.tsx`, built in JS so it looks the same on both platforms). The choices are in `src/lib/choices.ts`: routine names, activities, note labels, contact labels, house labels, with separate lists for a child and an adult. Every list also has "Or type your own".
+  - Routine steps are an activity plus optional details (the `note` column, added in database version 2).
+  - **Several routines per person** (database version 3): a `routines` table, with each step belonging to one. A new person starts with one empty routine (Bedtime for a child, Daily for an adult). `people.routine_name` is left over and no longer used.
+  - **Checking off routine steps:** tap a step on the person's page. `step_checks` records the day, the time and who did it ("Done at 7:12 pm by Matt"). Tap again to undo. Checks start fresh each day. Each routine shows "2 of 5 done" or "All done".
+  - **Passwords and codes (user request):** each house item has a visible "Details" box (`value`) and a separate "Password or code" box (`secret`, added in version 4) that is always hidden. On the page the secret shows as dots with a "Show" button, and goes back to dots when the page is reopened. In the editor it's typed as dots, with an eye button to check it.
+    - Version 4 moved anything already saved under a password-like label (Wi-Fi, Alarm, Door code, PIN... see `looksSecret` in `db.ts`) into the secret box.
+    - The sitter link should keep secrets hidden until tapped too.
+  - **Lesson:** a "Hide until tapped" switch was tried first and gave an error on the phone. Version 3 had been changed after the phone already ran it, so the column it needed was missing. Never change a database step once it may have run on a phone, even in testing: add a new step. Version 4 checks which columns exist before adding one.
+  - Medicine with a time can be checked off each day (the `doses` table records who gave it and when). Medicine with no time shows as "As needed".
+  - Light mode only for now (`userInterfaceStyle: "light"`). Icons are react-native-svg outlines in `components/Icon.tsx`. Nunito via `@expo-google-fonts/nunito`.
+  - "Mark given" uses the person's color.
+  - Not built yet: the sitter card on Home (it waits for sitter links), "Who's visiting" (needs the care team), reordering rows, photos and Papers, dark mode, web (expo-sqlite on web needs extra setup).
 - **Before the first build, still to set:**
   - the app name check on the App Store ("Hearth" may be taken)
   - the bundle id
@@ -83,7 +99,5 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
 ## Next steps
 
 1. **GitHub:** https://github.com/thehatch3tt/hearth (private, branch `master`, pushed 2026-10-07). The `gh` CLI isn't installed here; plain `git push` works. **The user** creates a Firebase project when it's time to start syncing.
-2. **Build the on-device handbook first**, with no accounts:
-   - people (kids and parents), the house, the emergency card
-   - local storage (expo-sqlite, as in Scripture Loop)
+2. **On-device handbook:** first version built (see above). Next: try it on a phone in Expo Go, then polish.
 3. Then the sitter link, then care-team sharing with Firebase and encryption.
