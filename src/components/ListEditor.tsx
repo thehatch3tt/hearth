@@ -8,26 +8,25 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { Icon } from '@/components/Icon';
-import { Select } from '@/components/Select';
+import { DaySelect, Select, TimeSelect } from '@/components/Select';
 import { LinkButton, SavedInput, Text } from '@/components/ui';
 import { toOptions } from '@/lib/choices';
 import { deleteBlankRows, deleteRow, insertRow, type Table, updateRow } from '@/lib/db';
 import { colors } from '@/lib/theme';
-import { dayOptions, formatTime, longDay, timeOptions } from '@/lib/time';
 
 export type Column = {
   key: string;
   placeholder: string;
   /**
-   * `time`: every 15 minutes. `day`: the coming months. `choice`: from `options`, or type your own.
+   * `time`: hour, minutes, am/pm. `day`: a calendar. `choice`: from `options`, or type your own.
    * `text` (the default) and `phone` are typed. `secret` is typed as dots, with an eye to check it.
    */
   kind?: 'text' | 'phone' | 'time' | 'day' | 'choice' | 'secret';
   options?: string[];
   /** For `time`: a first choice meaning "no time" (e.g. medicine given as needed). */
   clearLabel?: string;
-  /** For `time`: where the list opens when nothing is chosen yet. */
-  scrollTo?: string;
+  /** For `time`: the time the picker starts at when nothing is chosen yet. */
+  suggest?: string;
   /** A fixed width; otherwise the box shares the line. */
   width?: number;
   multiline?: boolean;
@@ -97,15 +96,13 @@ export function ListEditor({
     }
     if (column.kind === 'time') {
       return (
-        <Select
+        <TimeSelect
           key={column.key}
           title={column.placeholder}
           placeholder={column.placeholder}
           value={saved}
-          options={timeOptions(saved)}
-          display={formatTime}
           clearLabel={column.clearLabel}
-          scrollTo={column.scrollTo ?? '07:00'}
+          suggest={column.suggest}
           onChange={onChange}
           style={size}
         />
@@ -113,13 +110,11 @@ export function ListEditor({
     }
     if (column.kind === 'day') {
       return (
-        <Select
+        <DaySelect
           key={column.key}
           title={column.placeholder}
           placeholder={column.placeholder}
           value={saved}
-          options={dayOptions(saved)}
-          display={longDay}
           onChange={onChange}
           style={size}
         />

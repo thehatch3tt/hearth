@@ -1,15 +1,17 @@
 /**
- * A pick list: looks like a text box with a ▾, and opens a sheet of choices from the bottom of the
- * screen. Optionally lets you type your own instead. Built in JavaScript (not a native menu) so long
- * lists like times scroll well, and it looks the same on iPhone and Android.
+ * Pick lists: a box with a ▾ that opens a short sheet from the bottom of the screen. Built to need
+ * little or no scrolling:
+ * - `Select`: choices as chips that wrap, plus optionally typing your own.
+ * - `TimeSelect`: a grid of hours, then minutes and am/pm.
+ * - `DaySelect`: a month calendar.
  */
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import {
-  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -19,43 +21,84 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { Text, styles as ui } from '@/components/ui';
+import { Button, Text, styles as ui } from '@/components/ui';
 import { colors, radius } from '@/lib/theme';
-import { type Option } from '@/lib/time';
+import { formatTime, longDay, todayKey, type Option } from '@/lib/time';
 
-const ROW_HEIGHT = 52;
-
-export function Select({
-  value,
-  options,
-  onChange,
-  placeholder,
-  title,
-  display,
-  custom,
-  clearLabel,
-  scrollTo,
-  style,
-}: {
+type BoxProps = {
   value: string;
-  options: Option[];
   onChange: (value: string) => void;
   /** Shown in the box when nothing is chosen. */
   placeholder: string;
   /** The heading on the sheet. */
   title: string;
-  /** How the chosen value reads in the box (defaults to its option's label, or the value itself). */
-  display?: (value: string) => string;
+  style?: StyleProp<ViewStyle>;
+};
+
+/** Choose from a few words (shown as chips), or type your own. */
+export function Select({
+  options,
+  custom,
+  clearLabel,
+  ...box
+}: BoxProps & {
+  options: Option[];
   /** Allows typing your own; this is the typing box's placeholder. */
   custom?: string;
-  /** A first choice that clears the value, e.g. "No set time". */
+  /** A first choice that clears the value. */
   clearLabel?: string;
-  /** With nothing chosen, open the list scrolled to this value (e.g. "07:00"). */
-  scrollTo?: string;
-  style?: StyleProp<ViewStyle>;
 }) {
+  const shown = options.find((o) => o.value === box.value)?.label ?? box.value;
+  return (
+    <PickerBox {...box} shown={shown}>
+      {(choose) => <ChoiceSheet value={box.value} options={options} custom={custom} clearLabel={clearLabel} onChoose={choose} />}
+    </PickerBox>
+  );
+}
+
+/** Choose a time ("HH:MM"). */
+export function TimeSelect({
+  clearLabel,
+  suggest = '07:00',
+  ...box
+}: BoxProps & {
+  /** A choice meaning "no time", e.g. medicine given as needed. */
+  clearLabel?: string;
+  /** With nothing chosen yet, the sheet starts at this time (e.g. "18:00" for bedtime). */
+  suggest?: string;
+}) {
+  return (
+    <PickerBox {...box} shown={box.value ? formatTime(box.value) : ''}>
+      {(choose) => <TimeSheet value={box.value || suggest} clearLabel={clearLabel} onChoose={choose} />}
+    </PickerBox>
+  );
+}
+
+/** Choose a day ("YYYY-MM-DD"). */
+export function DaySelect(box: BoxProps) {
+  return (
+    <PickerBox {...box} shown={box.value ? longDay(box.value) : ''}>
+      {(choose) => <DaySheet value={box.value} onChoose={choose} />}
+    </PickerBox>
+  );
+}
+
+/** The box that looks like a text field, and the sheet it opens. */
+function PickerBox({
+  value,
+  onChange,
+  placeholder,
+  title,
+  style,
+  shown,
+  children,
+}: BoxProps & { shown: string; children: (choose: (value: string) => void) => ReactNode }) {
   const [open, setOpen] = useState(false);
-  const shown = value ? (display?.(value) ?? options.find((o) => o.value === value)?.label ?? value) : '';
+  const insets = useSafeAreaInsets();
+  const choose = (choice: string) => {
+    setOpen(false);
+    if (choice !== value) onChange(choice);
+  };
 
   return (
     <>
@@ -70,113 +113,200 @@ export function Select({
         <Icon name="down" size={16} color={colors.muted} strokeWidth={2.4} />
       </Pressable>
       {open && (
-        <Sheet
-          title={title}
-          value={value}
-          options={clearLabel ? [{ value: '', label: clearLabel }, ...options] : options}
-          custom={custom}
-          scrollTo={scrollTo}
-          onClose={() => setOpen(false)}
-          onChoose={(choice) => {
-            setOpen(false);
-            if (choice !== value) onChange(choice);
-          }}
-        />
+        <Modal visible transparent animationType="slide" onRequestClose={() => setOpen(false)} statusBarTranslucent navigationBarTranslucent>
+          <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={() => setOpen(false)} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.sheetWrap}
+            pointerEvents="box-none">
+            <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+              <View style={styles.grabber} />
+              <View style={styles.header}>
+                <Text weight={900} size={18}>
+                  {title}
+                </Text>
+                <Pressable accessibilityRole="button" onPress={() => setOpen(false)} hitSlop={10}>
+                  <Text weight={700} size={15} color={colors.accentText}>
+                    Cancel
+                  </Text>
+                </Pressable>
+              </View>
+              {children(choose)}
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       )}
     </>
   );
 }
 
-function Sheet({
-  title,
+/** A small rounded button that can be selected. */
+function Chip({ label, selected, onPress, style }: { label: string; selected?: boolean; onPress: () => void; style?: StyleProp<ViewStyle> }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.chip, selected && styles.chipSelected, pressed && { opacity: 0.7 }, style]}>
+      <Text weight={selected ? 800 : 700} size={15} color={selected ? '#FFFFFF' : colors.ink}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function ChoiceSheet({
   value,
   options,
   custom,
-  scrollTo,
-  onClose,
+  clearLabel,
   onChoose,
 }: {
-  title: string;
   value: string;
   options: Option[];
   custom?: string;
-  scrollTo?: string;
-  onClose: () => void;
+  clearLabel?: string;
   onChoose: (value: string) => void;
 }) {
-  const insets = useSafeAreaInsets();
   const isPreset = options.some((o) => o.value === value);
   const [typed, setTyped] = useState(isPreset ? '' : value);
-  const target = options.findIndex((o) => o.value === (value || scrollTo));
-  // Open with the chosen one a little below the top, so a couple of earlier choices show above it.
-  const startAt = Math.max(0, target - 2);
+  return (
+    <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 14 }} keyboardShouldPersistTaps="handled">
+      <View style={styles.wrap}>
+        {clearLabel && <Chip label={clearLabel} selected={value === ''} onPress={() => onChoose('')} />}
+        {options.map((option) => (
+          <Chip key={option.value} label={option.label} selected={option.value === value} onPress={() => onChoose(option.value)} />
+        ))}
+      </View>
+      {custom !== undefined && (
+        <View style={styles.custom}>
+          <TextInput
+            value={typed}
+            onChangeText={setTyped}
+            placeholder={custom}
+            placeholderTextColor={colors.faint}
+            returnKeyType="done"
+            onSubmitEditing={() => typed.trim() && onChoose(typed.trim())}
+            style={[ui.input, { flex: 1 }]}
+          />
+          <Pressable
+            accessibilityRole="button"
+            disabled={!typed.trim()}
+            onPress={() => onChoose(typed.trim())}
+            style={[styles.use, !typed.trim() && { opacity: 0.4 }]}>
+            <Text weight={800} size={15} color="#FFFFFF">
+              Use
+            </Text>
+          </Pressable>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+function TimeSheet({ value, clearLabel, onChoose }: { value: string; clearLabel?: string; onChoose: (value: string) => void }) {
+  const [h, m] = value.split(':').map(Number);
+  const [hour, setHour] = useState(h % 12 === 0 ? 12 : h % 12);
+  const [minute, setMinute] = useState(m);
+  const [pm, setPm] = useState(h >= 12);
+  const minutes = [0, 15, 30, 45].includes(m) ? [0, 15, 30, 45] : [0, 15, 30, 45, m].sort((a, b) => a - b);
+  const time = `${pad((hour % 12) + (pm ? 12 : 0))}:${pad(minute)}`;
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
-      <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={onClose} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap} pointerEvents="box-none">
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
-          <View style={styles.grabber} />
-          <View style={styles.header}>
-            <Text weight={900} size={20}>
-              {title}
+    <View style={{ gap: 14 }}>
+      <Text weight={900} size={30} style={{ textAlign: 'center' }}>
+        {formatTime(time)}
+      </Text>
+      <View style={styles.wrap}>
+        {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => (
+          <Chip key={n} label={String(n)} selected={n === hour} onPress={() => setHour(n)} style={styles.hour} />
+        ))}
+      </View>
+      <View style={styles.row}>
+        {minutes.map((n) => (
+          <Chip key={n} label={`:${pad(n)}`} selected={n === minute} onPress={() => setMinute(n)} style={{ flex: 1 }} />
+        ))}
+      </View>
+      <View style={styles.row}>
+        <Chip label="am" selected={!pm} onPress={() => setPm(false)} style={{ flex: 1 }} />
+        <Chip label="pm" selected={pm} onPress={() => setPm(true)} style={{ flex: 1 }} />
+      </View>
+      <View style={styles.row}>
+        {clearLabel && <Button quiet title={clearLabel} onPress={() => onChoose('')} style={{ flex: 1 }} />}
+        <Button title="Set time" onPress={() => onChoose(time)} style={{ flex: 1 }} />
+      </View>
+    </View>
+  );
+}
+
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function DaySheet({ value, onChoose }: { value: string; onChoose: (value: string) => void }) {
+  const today = todayKey();
+  const start = (value || today).split('-').map(Number);
+  const [month, setMonth] = useState({ year: start[0], month: start[1] - 1 });
+  const first = new Date(month.year, month.month, 1);
+  const daysInMonth = new Date(month.year, month.month + 1, 0).getDate();
+  // Blank cells before the 1st, so it lands under its weekday.
+  const cells: (number | null)[] = [...Array(first.getDay()).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  const keyOf = (day: number) => `${month.year}-${pad(month.month + 1)}-${pad(day)}`;
+  const step = (by: number) => {
+    const next = new Date(month.year, month.month + by, 1);
+    setMonth({ year: next.getFullYear(), month: next.getMonth() });
+  };
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  return (
+    <View style={{ gap: 12 }}>
+      <View style={styles.row}>
+        <Chip label="Today" selected={value === today} onPress={() => onChoose(today)} style={{ flex: 1 }} />
+        <Chip label="Tomorrow" selected={value === todayKey(tomorrow)} onPress={() => onChoose(todayKey(tomorrow))} style={{ flex: 1 }} />
+      </View>
+      <View style={[styles.row, { justifyContent: 'space-between' }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => step(-1)} hitSlop={8} style={styles.arrow}>
+          <Icon name="back" size={20} />
+        </Pressable>
+        <Text weight={900} size={17}>
+          {first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        </Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => step(1)} hitSlop={8} style={styles.arrow}>
+          <Icon name="chevron" size={20} />
+        </Pressable>
+      </View>
+      <View style={styles.calendar}>
+        {WEEKDAYS.map((name, i) => (
+          <View key={`w${i}`} style={styles.cell}>
+            <Text weight={800} size={12} color={colors.muted}>
+              {name}
             </Text>
-            <Pressable accessibilityRole="button" onPress={onClose} hitSlop={10}>
-              <Text weight={700} size={15} color={colors.accentText}>
-                Cancel
-              </Text>
-            </Pressable>
           </View>
-
-          {custom !== undefined && (
-            <View style={styles.custom}>
-              <TextInput
-                value={typed}
-                onChangeText={setTyped}
-                placeholder={custom}
-                placeholderTextColor={colors.faint}
-                returnKeyType="done"
-                onSubmitEditing={() => typed.trim() && onChoose(typed.trim())}
-                style={[ui.input, { flex: 1 }]}
-              />
-              <Pressable
-                accessibilityRole="button"
-                disabled={!typed.trim()}
-                onPress={() => onChoose(typed.trim())}
-                style={[styles.use, !typed.trim() && { opacity: 0.4 }]}>
-                <Text weight={800} size={15} color="#FFFFFF">
-                  Use
+        ))}
+        {cells.map((day, i) => {
+          if (day === null) return <View key={`b${i}`} style={styles.cell} />;
+          const key = keyOf(day);
+          const selected = key === value;
+          const past = key < today;
+          return (
+            <Pressable
+              key={key}
+              accessibilityRole="button"
+              accessibilityLabel={longDay(key)}
+              accessibilityState={{ selected }}
+              onPress={() => onChoose(key)}
+              style={styles.cell}>
+              <View style={[styles.day, key === today && styles.today, selected && styles.chipSelected]}>
+                <Text weight={selected ? 900 : 700} size={15} color={selected ? '#FFFFFF' : past ? colors.faint : colors.ink}>
+                  {day}
                 </Text>
-              </Pressable>
-            </View>
-          )}
-
-          <FlatList
-            data={options}
-            keyExtractor={(option) => option.value || '(none)'}
-            initialScrollIndex={startAt < options.length ? startAt : 0}
-            getItemLayout={(_, index) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * index, index })}
-            keyboardShouldPersistTaps="handled"
-            style={{ flexGrow: 0 }}
-            renderItem={({ item }) => {
-              const selected = item.value === value;
-              return (
-                <Pressable
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  onPress={() => onChoose(item.value)}
-                  style={({ pressed }) => [styles.option, selected && styles.selected, pressed && { backgroundColor: colors.chip }]}>
-                  <Text weight={selected ? 800 : 600} size={16} color={item.value ? colors.ink : colors.muted} style={{ flex: 1 }}>
-                    {item.label}
-                  </Text>
-                  {selected && <Icon name="check" size={18} color={colors.accent} strokeWidth={2.6} />}
-                </Pressable>
-              );
-            }}
-          />
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -185,22 +315,32 @@ const styles = StyleSheet.create({
   backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(20, 35, 27, 0.4)' },
   sheetWrap: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    maxHeight: '75%',
+    maxHeight: '85%',
     backgroundColor: colors.card,
     borderTopLeftRadius: radius.big,
     borderTopRightRadius: radius.big,
-    paddingHorizontal: 12,
+    paddingHorizontal: 18,
   },
   grabber: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.border, marginTop: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, paddingVertical: 12 },
-  custom: { flexDirection: 'row', gap: 8, paddingHorizontal: 8, paddingBottom: 10 },
-  use: { height: 44, paddingHorizontal: 18, borderRadius: radius.small, backgroundColor: colors.accent, justifyContent: 'center' },
-  option: {
-    height: ROW_HEIGHT,
-    flexDirection: 'row',
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  chip: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+    backgroundColor: colors.chip,
     alignItems: 'center',
-    paddingHorizontal: 12,
-    borderRadius: radius.small,
+    justifyContent: 'center',
   },
-  selected: { backgroundColor: colors.chip },
+  chipSelected: { backgroundColor: colors.accent },
+  // Six hours to a row.
+  hour: { flexBasis: '14%', flexGrow: 1, paddingHorizontal: 0 },
+  custom: { flexDirection: 'row', gap: 8 },
+  use: { height: 44, paddingHorizontal: 18, borderRadius: radius.small, backgroundColor: colors.accent, justifyContent: 'center' },
+  arrow: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  calendar: { flexDirection: 'row', flexWrap: 'wrap' },
+  cell: { width: `${100 / 7}%`, height: 44, alignItems: 'center', justifyContent: 'center' },
+  day: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  today: { borderWidth: 2, borderColor: colors.accent },
 });

@@ -1,6 +1,6 @@
 /**
  * Times are saved as "HH:MM" (24-hour) and days as "YYYY-MM-DD", both in the phone's own time zone.
- * They're chosen from lists (every 15 minutes; the coming months) rather than typed.
+ * They're chosen with pickers (components/Select.tsx) rather than typed.
  */
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -30,16 +30,6 @@ export function shortTime(time: string) {
 export function minutesUntil(time: string, now = new Date()) {
   const [h, m] = time.split(':').map(Number);
   return h * 60 + m - (now.getHours() * 60 + now.getMinutes());
-}
-
-/** Every 15 minutes of the day, plus `current` if it's saved at some other minute. */
-export function timeOptions(current = ''): Option[] {
-  const times: string[] = [];
-  for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
-    times.push(`${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`);
-  }
-  if (current && !times.includes(current)) times.push(current);
-  return times.sort().map((value) => ({ value, label: formatTime(value) }));
 }
 
 function toDate(day: string) {
@@ -76,22 +66,6 @@ export function relativeDay(day: string, today = new Date()) {
   if (ahead === 1) return 'Tomorrow';
   const { weekday, date, month } = dayParts(day);
   return ahead > 1 && ahead < 7 ? weekday : `${month} ${date}`;
-}
-
-/** Today and the next six months, plus `current` if it's further off or already past. */
-export function dayOptions(current = '', today = new Date()): Option[] {
-  const options: Option[] = [];
-  for (let ahead = 0; ahead < 183; ahead++) {
-    const value = todayKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() + ahead));
-    const label = ahead === 0 ? `Today · ${longDay(value)}` : ahead === 1 ? `Tomorrow · ${longDay(value)}` : longDay(value);
-    options.push({ value, label });
-  }
-  if (current && !options.some((o) => o.value === current)) {
-    const extra = { value: current, label: longDay(current) };
-    if (current < options[0].value) options.unshift(extra);
-    else options.push(extra);
-  }
-  return options;
 }
 
 /** The clock time of a moment, e.g. "8:12 am". */

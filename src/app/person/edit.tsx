@@ -1,11 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { Hint, ListEditor } from '@/components/ListEditor';
 import { Icon } from '@/components/Icon';
-import { Button, Card, Field, PageHeader, PillButton, SavedInput, Screen, SectionTitle, Text, styles as ui } from '@/components/ui';
+import { Hint, ListEditor } from '@/components/ListEditor';
+import { Select } from '@/components/Select';
+import { Button, Card, Field, PageHeader, PillButton, SavedInput, Screen, Text, styles as ui } from '@/components/ui';
+import { activities, noteLabels, routineNames, toOptions } from '@/lib/choices';
 import {
   type Alert as AlertRow,
   type Appointment,
@@ -22,11 +24,10 @@ import {
   useQuery,
   type Word,
 } from '@/lib/db';
-import { Select } from '@/components/Select';
-import { activities, noteLabels, routineNames, toOptions } from '@/lib/choices';
 import { colors, PERSON_COLORS, personColor, type PersonColor } from '@/lib/theme';
+import { longDay, todayKey } from '@/lib/time';
 
-/** Where the time list opens for a routine, so a bedtime routine doesn't start at midnight. */
+/** Where the time picker starts for a routine, so a bedtime routine doesn't start in the morning. */
 function routineStart(name: string) {
   const text = name.toLowerCase();
   if (text.includes('morning')) return '06:30';
@@ -35,6 +36,9 @@ function routineStart(name: string) {
   if (text.includes('bed') || text.includes('evening')) return '18:00';
   return '07:00';
 }
+
+/** "1 medicine", "3 medicines" */
+const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** Adds a person (no `id`), or edits everything on a person's page. */
 export default function EditPersonScreen() {
@@ -49,7 +53,7 @@ function AddPerson() {
   const [kind, setKind] = useState<PersonKind>('child');
   const [color, setColor] = useState<PersonColor>();
   // The first color nobody has yet, until one is picked.
-  const shown = color ?? PERSON_COLORS.find((c) => !used?.some((u) => u.color === c)) ?? 'blue';
+  const shown = color ?? PERSON_COLORS.find((c) => !used?.some((u) => u.color === c)) ?? 'peach';
 
   async function add() {
     const personId = await insertRow(db, 'people', { name: name.trim(), kind, color: shown });
@@ -61,7 +65,7 @@ function AddPerson() {
 
   return (
     <Screen header={<PageHeader />}>
-      <Text weight={800} size={28} style={{ letterSpacing: -0.5 }}>
+      <Text weight={900} size={28} style={{ letterSpacing: -0.3 }}>
         Add a person
       </Text>
       <Card style={{ gap: 16 }}>
@@ -85,8 +89,12 @@ function AddPerson() {
   );
 }
 
+type SectionName = 'basics' | 'alerts' | 'medicine' | 'routines' | 'appointments' | 'notes' | 'words';
+
 function EditPerson({ personId }: { personId: number }) {
   const db = useSQLiteContext();
+  // One section open at a time, so the page stays short.
+  const [open, setOpen] = useState<SectionName | null>(null);
   const person = useFirst<Person>('SELECT * FROM people WHERE id = ?', [personId]);
   const parent = { person_id: personId };
   const alerts = useQuery<AlertRow>('SELECT * FROM alerts WHERE person_id = ? ORDER BY sort, id', [personId]);
@@ -103,6 +111,24 @@ function EditPerson({ personId }: { personId: number }) {
   if (!person) return null;
   const save = (values: Partial<Person>) => updateRow(db, 'people', personId, values);
   const child = person.kind === 'child';
+  const section = (name: SectionName) => ({
+    open: open === name,
+    onToggle: () => setOpen(open === name ? null : name),
+  });
+
+  // The one-line summaries shown while a section is folded away.
+  const filledAlerts = alerts?.filter((a) => a.title || a.details) ?? [];
+  const daily = medicines?.filter((m) => m.name && m.time).length ?? 0;
+  const asNeeded = medicines?.filter((m) => m.name && !m.time).length ?? 0;
+  const routineSummary = (routines ?? [])
+    .map((r) => {
+      const n = steps?.filter((s) => s.routine_id === r.id && s.text).length ?? 0;
+      return `${(r.name || 'Routine').replace(/ routine$/i, '')} (${n})`;
+    })
+    .join(', ');
+  const nextVisit = appointments?.filter((a) => a.day >= todayKey()).sort((a, b) => a.day.localeCompare(b.day))[0];
+  const filledNotes = notes?.filter((n) => n.text) ?? [];
+  const filledWords = words?.filter((w) => w.word) ?? [];
 
   /** Adds a routine named after the first suggestion this person doesn't have yet. */
   function addRoutine() {
@@ -137,12 +163,15 @@ function EditPerson({ personId }: { personId: number }) {
     <Screen
       header={
         <PageHeader background={personColor(person.color).soft} right={<PillButton title="Done" onPress={() => router.back()} />}>
-          <Text weight={800} size={28} style={{ letterSpacing: -0.5 }}>
+          <Text weight={900} size={28} style={{ letterSpacing: -0.3 }}>
             {person.name || 'Edit'}
           </Text>
         </PageHeader>
       }>
-      <Card style={{ gap: 16 }}>
+      <Section
+        title="About"
+        summary={[child ? 'Child' : 'Adult', person.age, person.about].filter(Boolean).join(' · ')}
+        {...section('basics')}>
         <Field label="Name">
           <SavedInput key={`name:${person.name}`} value={person.name} onSave={(name) => name.trim() && save({ name: name.trim() })} autoCapitalize="words" />
         </Field>
@@ -165,10 +194,12 @@ function EditPerson({ personId }: { personId: number }) {
         </View>
         <KindPicker value={person.kind} onChange={(kind) => save({ kind })} />
         <ColorPicker value={person.color} onChange={(color) => save({ color })} />
-      </Card>
+      </Section>
 
-      <Card>
-        <SectionTitle title="Allergies and warnings" />
+      <Section
+        title="Allergies and warnings"
+        summary={filledAlerts.map((a) => a.title).filter(Boolean).join(', ')}
+        {...section('alerts')}>
         <Hint>Shown in red at the top of the page, and on the emergency card.</Hint>
         <ListEditor
           table="alerts"
@@ -177,10 +208,12 @@ function EditPerson({ personId }: { personId: number }) {
           lines={[[{ key: 'title', placeholder: 'Severe peanut allergy' }], [{ key: 'details', placeholder: 'What to do: EpiPen in the kitchen drawer...', multiline: true }]]}
           addLabel="Add a warning"
         />
-      </Card>
+      </Section>
 
-      <Card>
-        <SectionTitle title="Medicine" />
+      <Section
+        title="Medicine"
+        summary={[daily && `${daily} daily`, asNeeded && `${asNeeded} as needed`].filter(Boolean).join(', ')}
+        {...section('medicine')}>
         <Hint>Choose a time for daily medicine, so it can be checked off each day. Choose “No set time” for medicine given only when needed.</Hint>
         <ListEditor
           table="medicines"
@@ -189,23 +222,18 @@ function EditPerson({ personId }: { personId: number }) {
           lines={[
             [
               { key: 'name', placeholder: 'Name and dose' },
-              { key: 'time', placeholder: 'Time', kind: 'time', width: 124, clearLabel: 'No set time (as needed)', scrollTo: '08:00' },
+              { key: 'time', placeholder: 'Time', kind: 'time', width: 124, clearLabel: 'No set time', suggest: '08:00' },
             ],
             [{ key: 'note', placeholder: child ? 'If fever over 101°' : 'With dinner' }],
           ]}
           addLabel="Add medicine"
         />
-      </Card>
+      </Section>
 
-      <View style={{ gap: 12 }}>
-        <View style={{ paddingHorizontal: 4, paddingTop: 6, gap: 2 }}>
-          <Text weight={900} size={20}>
-            Routines
-          </Text>
-          <Hint>Each step can be checked off on their page as it’s done. Checks start fresh every day.</Hint>
-        </View>
+      <Section title="Routines" summary={routineSummary} {...section('routines')}>
+        <Hint>Each step can be checked off on their page as it’s done. Checks start fresh every day.</Hint>
         {routines?.map((routine) => (
-          <Card key={routine.id}>
+          <View key={routine.id} style={styles.routine}>
             <View style={ui.row}>
               <Select
                 title="Which routine"
@@ -231,20 +259,22 @@ function EditPerson({ personId }: { personId: number }) {
               parent={{ person_id: personId, routine_id: routine.id }}
               lines={[
                 [
-                  { key: 'time', placeholder: 'Time', kind: 'time', width: 124, scrollTo: routineStart(routine.name) },
+                  { key: 'time', placeholder: 'Time', kind: 'time', width: 124, suggest: routineStart(routine.name) },
                   { key: 'text', placeholder: 'Activity', kind: 'choice', options: activities[person.kind] },
                 ],
                 [{ key: 'note', placeholder: child ? 'Details (optional): she likes bubbles' : 'Details (optional)' }],
               ]}
               addLabel="Add a step"
             />
-          </Card>
+          </View>
         ))}
         <Button quiet title="Add a routine" icon="plus" color={colors.accentText} onPress={addRoutine} />
-      </View>
+      </Section>
 
-      <Card>
-        <SectionTitle title="Appointments" />
+      <Section
+        title="Appointments"
+        summary={nextVisit ? `Next: ${nextVisit.title || 'appointment'}, ${longDay(nextVisit.day)}` : ''}
+        {...section('appointments')}>
         <ListEditor
           table="appointments"
           rows={appointments}
@@ -252,17 +282,19 @@ function EditPerson({ personId }: { personId: number }) {
           lines={[
             [
               { key: 'day', placeholder: 'Date', kind: 'day' },
-              { key: 'time', placeholder: 'Time', kind: 'time', width: 124, scrollTo: '09:00' },
+              { key: 'time', placeholder: 'Time', kind: 'time', width: 124, suggest: '09:00' },
             ],
             [{ key: 'title', placeholder: child ? 'Dentist, Dr. Lee' : 'Cardiology, Dr. Patel' }],
             [{ key: 'driver', placeholder: 'Who’s driving (optional)' }],
           ]}
           addLabel="Add an appointment"
         />
-      </Card>
+      </Section>
 
-      <Card>
-        <SectionTitle title="Notes" />
+      <Section
+        title="Notes"
+        summary={filledNotes.map((n) => n.label || 'Note').join(', ')}
+        {...section('notes')}>
         <Hint>Short things a helper should know, like a comfort item, food, or screen time.</Hint>
         <ListEditor
           table="notes"
@@ -274,10 +306,12 @@ function EditPerson({ personId }: { personId: number }) {
           ]}
           addLabel="Add a note"
         />
-      </Card>
+      </Section>
 
-      <Card>
-        <SectionTitle title={child ? 'Words they use' : 'Good to know'} />
+      <Section
+        title={child ? 'Words they use' : 'Good to know'}
+        summary={filledWords.length ? count(filledWords.length, child ? 'word' : 'thing') : ''}
+        {...section('words')}>
         <ListEditor
           table="words"
           rows={words}
@@ -290,7 +324,7 @@ function EditPerson({ personId }: { personId: number }) {
           ]}
           addLabel={child ? 'Add a word' : 'Add one'}
         />
-      </Card>
+      </Section>
 
       <Pressable accessibilityRole="button" onPress={confirmDelete} style={({ pressed }) => [styles.delete, pressed && { opacity: 0.6 }]}>
         <Icon name="trash" size={18} color={colors.danger} />
@@ -299,6 +333,44 @@ function EditPerson({ personId }: { personId: number }) {
         </Text>
       </Pressable>
     </Screen>
+  );
+}
+
+/** A card that folds to one line (its title and a summary) and opens when tapped. */
+function Section({
+  title,
+  summary,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  summary: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Card style={{ paddingVertical: 4, gap: 0 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={onToggle}
+        style={({ pressed }) => [styles.sectionHeader, pressed && { opacity: 0.6 }]}>
+        <View style={{ flex: 1, gap: 1 }}>
+          <Text weight={800} size={16}>
+            {title}
+          </Text>
+          {!open && (
+            <Text weight={600} size={13} color={summary ? colors.muted : colors.faint} numberOfLines={1}>
+              {summary || 'Nothing yet. Tap to add.'}
+            </Text>
+          )}
+        </View>
+        <Icon name={open ? 'down' : 'chevron'} size={18} color={colors.muted} strokeWidth={2.4} />
+      </Pressable>
+      {open && <View style={styles.sectionBody}>{children}</View>}
+    </Card>
   );
 }
 
@@ -335,7 +407,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (color: Per
     <Field label="Their color">
       <View style={[ui.row, { gap: 10 }]}>
         {PERSON_COLORS.map((name) => {
-          const selected = name === value;
+          const selected = name === value || personColor(value) === personColor(name);
           return (
             <Pressable
               key={name}
@@ -344,8 +416,8 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (color: Per
               accessibilityState={{ selected }}
               onPress={() => onChange(name)}
               hitSlop={4}
-              style={[styles.swatch, { backgroundColor: personColor(name).strong }, selected && styles.swatchSelected]}>
-              {selected && <Icon name="check" size={16} color="#FFFFFF" strokeWidth={3} />}
+              style={[styles.swatch, { backgroundColor: personColor(name).soft }, selected && styles.swatchSelected]}>
+              {selected && <Icon name="check" size={16} color={personColor(name).strong} strokeWidth={3} />}
             </Pressable>
           );
         })}
@@ -355,6 +427,9 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (color: Per
 }
 
 const styles = StyleSheet.create({
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8 },
+  sectionBody: { gap: 12, paddingTop: 4, paddingBottom: 12 },
+  routine: { gap: 10, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
   segments: { flexDirection: 'row', backgroundColor: colors.background, borderRadius: 12, padding: 3 },
   segment: { flex: 1, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   segmentSelected: { backgroundColor: colors.card, boxShadow: '0 1px 3px rgba(0,0,0,0.12)' },

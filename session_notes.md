@@ -78,7 +78,11 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
   - Data: expo-sqlite, `hearth.db`. Tables and migrations in `src/lib/db.ts` (`PRAGMA user_version`). Add a new `if (version === 1)` step for any change; never edit the version-0 tables.
   - `useQuery` re-reads after every save (a simple change counter, no per-table tracking).
   - Editing: `ListEditor` (rows of boxes, trash button, "+ Add").
-  - **Pick lists (user request):** times (every 15 min), dates (the next 6 months) and set choices open a bottom sheet (`components/Select.tsx`, built in JS so it looks the same on both platforms). The choices are in `src/lib/choices.ts`: routine names, activities, note labels, contact labels, house labels, with separate lists for a child and an adult. Every list also has "Or type your own".
+  - **Pick lists (user request):** times, dates and set choices open a short bottom sheet (`components/Select.tsx`, built in JS so it looks the same on both platforms). The first version used long scrolling lists, which the user found much too big, so now they barely scroll:
+    - `TimeSelect`: a grid of hours 12–11, then :00 / :15 / :30 / :45, am / pm, and "Set time".
+    - `DaySelect`: a month calendar, plus Today / Tomorrow.
+    - `Select`: choices as wrapping chips.
+  - **Edit page sections fold away (user request):** About, Allergies, Medicine, Routines, Appointments, Notes and Words. Each shows one line with a summary ("2 daily, 1 as needed") and opens when tapped. One is open at a time. The choices are in `src/lib/choices.ts`: routine names, activities, note labels, contact labels, house labels, with separate lists for a child and an adult. Every list also has "Or type your own".
   - Routine steps are an activity plus optional details (the `note` column, added in database version 2).
   - **Several routines per person** (database version 3): a `routines` table, with each step belonging to one. A new person starts with one empty routine (Bedtime for a child, Daily for an adult). `people.routine_name` is left over and no longer used.
   - **Checking off routine steps:** tap a step on the person's page. `step_checks` records the day, the time and who did it ("Done at 7:12 pm by Matt"). Tap again to undo. Checks start fresh each day. Each routine shows "2 of 5 done" or "All done".
