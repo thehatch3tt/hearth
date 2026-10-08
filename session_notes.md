@@ -42,7 +42,6 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
   - Medicine and routine steps use the same `CheckRow` as Today: an italic time with a small am/pm, square tick boxes, and a light haptic tap (`expo-haptics`, added 2026-10-07).
   - Folding sections on the edit page, the rest of today, and lists animate in and out with Reanimated layout transitions.
   - Chips are white with a thin edge (rust when chosen); sheets sit on paper with serif titles. The emergency card stays dark, with names and the address in serif.
-- The Figtree and Fraunces font packages are no longer used and can be removed.
 
 ## Dark mode, Settings and the whole day (built 2026-10-07)
 
@@ -148,10 +147,9 @@ All mockups are on the design canvas: https://claude.ai/artifact/JAot5UYvpHQ5sRP
 ## Next steps
 
 1. **The user tests Editorial on a phone** (every screen). Adjust anything they notice, then commit and push. A development build needs rebuilding for haptics.
-2. Remove the unused Figtree and Fraunces font packages.
-3. Today stays on **D · Front page** for now; E (the "now" line) and the others are on the canvas if it changes.
-4. **Check the icon and splash in a real build** (EAS preview build), especially the iOS Liquid Glass icon.
-5. **Firebase:** when the user has created the project, connect it, deploy the link page to Vercel, restyle it to Editorial, and send a real test link.
-6. Later: care-team sharing (Apple/Google sign-in, encrypted sync), App Check, the store build.
+2. Today stays on **D · Front page** for now; E (the "now" line) and the others are on the canvas if it changes.
+3. **Check the icon and splash in a real build** (EAS preview build), especially the iOS Liquid Glass icon.
+4. **Firebase:** when the user has created the project, connect it, deploy the link page to Vercel, restyle it to Editorial, and send a real test link.
+5. Later: care-team sharing (Apple/Google sign-in, encrypted sync), App Check, the store build.
 
 GitHub: https://github.com/thehatch3tt/hearth (private, branch `master`). The `gh` CLI isn't installed here; plain `git push` works.
