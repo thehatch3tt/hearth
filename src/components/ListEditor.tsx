@@ -12,7 +12,7 @@ import { DaySelect, Select, TimeSelect } from '@/components/Select';
 import { LinkButton, SavedInput, Text } from '@/components/ui';
 import { toOptions } from '@/lib/choices';
 import { deleteBlankRows, deleteRow, insertRow, type Table, updateRow } from '@/lib/db';
-import { colors } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 export type Column = {
   key: string;
@@ -49,6 +49,7 @@ export function ListEditor({
   parent?: Record<string, number>;
   addLabel: string;
 }) {
+  const { colors } = useTheme();
   const db = useSQLiteContext();
   const [added, setAdded] = useState<number>();
   const columns = lines.flat();
@@ -168,6 +169,7 @@ export function ListEditor({
 
 /** A short hint under a section's heading. */
 export function Hint({ children }: { children: string }) {
+  const { colors } = useTheme();
   return (
     <Text size={13} color={colors.muted} style={{ lineHeight: 18 }}>
       {children}

@@ -154,6 +154,8 @@ export type Settings = {
   address_note?: string;
   /** The line at the bottom of the emergency card, e.g. where the first aid kit is. */
   emergency_note?: string;
+  /** "light", "dark", or "system" (the default): follow the phone. */
+  appearance?: string;
 };
 
 // Never change a step once it may have run on a phone (even in testing): add a new step instead.

@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glass } from '@/components/Glass';
 import { Icon, type IconName } from '@/components/Icon';
 import { Text } from '@/components/ui';
-import { colors, tabBar } from '@/lib/theme';
+import { emergency, tabBar, useTheme } from '@/lib/theme';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -24,6 +24,7 @@ const TABS: Record<string, { label: string; icon: IconName }> = {
 };
 
 export function TabBar({ state, navigation }: TabBarProps) {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { bottom: Math.max(insets.bottom - 8, 14) }]}>
@@ -44,7 +45,7 @@ export function TabBar({ state, navigation }: TabBarProps) {
               accessibilityState={{ selected: focused }}
               accessibilityLabel={tab.label}
               onPress={onPress}
-              style={({ pressed }) => [styles.tab, focused && styles.current, pressed && styles.pressed]}>
+              style={({ pressed }) => [styles.tab, focused && { backgroundColor: colors.selected }, pressed && styles.pressed]}>
               <Icon name={tab.icon} size={21} color={color} strokeWidth={1.9} />
               <Text weight={700} size={11} color={color}>
                 {tab.label}
@@ -59,7 +60,7 @@ export function TabBar({ state, navigation }: TabBarProps) {
         accessibilityHint="Opens the emergency card"
         onPress={() => router.push('/emergency')}
         style={({ pressed }) => pressed && styles.pressed}>
-        <Glass tint={colors.danger} interactive style={styles.emergency}>
+        <Glass tint={emergency.call} interactive style={styles.emergency}>
           <Icon name="phone" size={24} color="#FFFFFF" strokeWidth={2.1} />
         </Glass>
       </Pressable>
@@ -78,7 +79,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   tab: { flex: 1, height: tabBar.height - 12, borderRadius: (tabBar.height - 12) / 2, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  current: { backgroundColor: 'rgba(20, 20, 20, 0.07)' },
   emergency: { width: tabBar.height, height: tabBar.height, borderRadius: tabBar.height / 2, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.7 },
 });

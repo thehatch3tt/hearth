@@ -1,128 +1,36 @@
 import { router } from 'expo-router';
-import { type SQLiteDatabase, useSQLiteContext } from 'expo-sqlite';
-import { useState } from 'react';
-import { Alert as Confirm, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { GlassButton, GlassIconButton } from '@/components/Glass';
-import { Button, Card, CheckRow, Hairline, Label, LinkButton, Masthead, Screen, SectionTitle, tap, Text, Title } from '@/components/ui';
-import { deleteRow, insertRow, type Person, useQuery, useSettings } from '@/lib/db';
-import { colors } from '@/lib/theme';
-import { formatTime, minutesUntil, relativeDay, spokenDate, spokenTime, todayKey, weekdayName } from '@/lib/time';
+import { Icon } from '@/components/Icon';
+import { Button, Card, CheckRow, Hairline, Label, LinkButton, Masthead, Screen, tap, Text, Title } from '@/components/ui';
+import { useDay, whenText } from '@/lib/day';
+import { type Person, useQuery } from '@/lib/db';
+import { useTheme } from '@/lib/theme';
+import { formatTime, relativeDay, spokenDate, spokenTime, todayKey, weekdayName } from '@/lib/time';
 
-/** One thing to do today: a timed medicine or a routine step. */
-type DayItem = {
-  key: string;
-  kind: 'medicine' | 'step';
-  id: number;
-  personId: number;
-  /** "HH:MM", or empty for a step with no time. */
-  time: string;
-  title: string;
-  note: string;
-  /** The dose or check that marks it done today, if it's done. */
-  doneId: number | null;
-};
-
-/** Marks an item done now. Outside the component because it reads the clock. */
-function markDone(db: SQLiteDatabase, item: DayItem, by: string) {
-  if (item.kind === 'medicine') {
-    return insertRow(db, 'doses', { medicine_id: item.id, day: todayKey(), given_at: Date.now(), given_by: by });
-  }
-  return insertRow(db, 'step_checks', { step_id: item.id, day: todayKey(), done_at: Date.now(), done_by: by });
-}
-
-function markNotDone(db: SQLiteDatabase, item: DayItem) {
-  if (item.doneId === null) return;
-  return deleteRow(db, item.kind === 'medicine' ? 'doses' : 'step_checks', item.doneId);
-}
-
-/** "in 25 minutes", "now", "was due 8:00 am", "at 5:30 pm" */
-function whenText(time: string) {
-  const minutes = minutesUntil(time);
-  if (minutes > 90) return `at ${formatTime(time)}`;
-  if (minutes > 1) return `in ${minutes} minutes`;
-  if (minutes >= -5) return 'now';
-  return `was due ${formatTime(time)}`;
-}
-
-/** How many of the rest of today to show before "See the whole day". */
+/** How many of the rest of today to show; the whole day is a page of its own. */
 const SHOWN = 3;
 
-/** Today, set like a magazine page: the day as a headline, the next thing due, the rest, and the people. */
+/** Today, set like a magazine page: the day as a headline, the next thing due, what's after it, and the people. */
 export default function TodayScreen() {
-  const db = useSQLiteContext();
-  const settings = useSettings();
-  const today = todayKey();
-  const [showAll, setShowAll] = useState(false);
-
-  const people = useQuery<Person>('SELECT * FROM people ORDER BY sort, id');
+  const { colors } = useTheme();
+  const { people, byId, items, open, done, next, toggle, settings } = useDay();
   const warnings = useQuery<{ person_id: number; title: string }>(
     "SELECT person_id, title FROM alerts WHERE title != '' ORDER BY sort, id",
   );
-  const medicines = useQuery<{ id: number; person_id: number; name: string; time: string; note: string; dose_id: number | null }>(
-    `SELECT id, person_id, name, time, note,
-       (SELECT d.id FROM doses d WHERE d.medicine_id = m.id AND d.day = ? LIMIT 1) AS dose_id
-     FROM medicines m WHERE time != '' AND name != ''`,
-    [today],
-  );
-  const steps = useQuery<{ id: number; person_id: number; time: string; text: string; note: string; check_id: number | null }>(
-    `SELECT s.id, s.person_id, s.time, s.text, s.note,
-       (SELECT c.id FROM step_checks c WHERE c.step_id = s.id AND c.day = ? LIMIT 1) AS check_id
-     FROM routine_steps s JOIN routines r ON r.id = s.routine_id WHERE s.text != ''`,
-    [today],
-  );
   const appointments = useQuery<{ person_id: number; day: string; title: string }>(
     "SELECT person_id, day, title FROM appointments WHERE day >= ? AND day != '' ORDER BY day, time",
-    [today],
+    [todayKey()],
   );
 
-  const byId = new Map(people?.map((p) => [p.id, p]));
-  const items: DayItem[] = [
-    ...(medicines ?? []).map((m) => ({
-      key: `m${m.id}`,
-      kind: 'medicine' as const,
-      id: m.id,
-      personId: m.person_id,
-      time: m.time,
-      title: m.name,
-      note: m.note,
-      doneId: m.dose_id,
-    })),
-    ...(steps ?? []).map((s) => ({
-      key: `s${s.id}`,
-      kind: 'step' as const,
-      id: s.id,
-      personId: s.person_id,
-      time: s.time,
-      title: s.text,
-      note: s.note,
-      doneId: s.check_id,
-    })),
-  ]
-    .filter((item) => byId.has(item.personId))
-    // In time order, untimed steps last; medicine first when the times match.
-    .sort((a, b) => (a.time || '99').localeCompare(b.time || '99') || (a.kind === 'medicine' ? -1 : 1));
-
-  const open = items.filter((item) => item.doneId === null);
-  const done = items.filter((item) => item.doneId !== null);
-  const next = open.find((item) => item.time) ?? open[0];
-  const later = open.filter((item) => item !== next);
-  const rest = showAll ? [...later, ...done] : later.slice(0, SHOWN);
-  const me = settings.my_name?.trim() ?? '';
+  const after = open.filter((item) => item !== next).slice(0, SHOWN);
   const family = settings.family_name?.trim();
   const now = new Date();
 
-  function toggle(item: DayItem) {
-    if (item.doneId === null) return markDone(db, item, me);
-    if (item.kind === 'step') return markNotDone(db, item);
-    Confirm.alert(`Undo ${item.title}?`, 'This marks it as not given today.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Not given', style: 'destructive', onPress: () => markNotDone(db, item) },
-    ]);
-  }
-
   const openPerson = (id: number) => router.push({ pathname: '/person/[id]', params: { id: String(id) } });
+  const openDay = () => router.push('/day');
 
   /** The short note beside a name in the contents: a warning first, else the next appointment, else their age. */
   function aside(person: Person) {
@@ -132,7 +40,6 @@ export default function TodayScreen() {
     if (visit) return { text: `${visit.title || 'Appointment'} ${relativeDay(visit.day)}`, alert: false };
     return { text: person.age ? `age ${person.age}` : '', alert: false };
   }
-
 
   return (
     <Screen tabBar>
@@ -146,7 +53,7 @@ export default function TodayScreen() {
       </Title>
 
       {people?.length === 0 && (
-        <Animated.View entering={FadeIn} style={[styles.lead, styles.thinRule]}>
+        <Animated.View entering={FadeIn} style={[styles.lead, styles.thinRule, { borderTopColor: colors.border }]}>
           <Label color={colors.accent}>Welcome</Label>
           <Text serif size={32} style={styles.headline}>
             Start with the people <Text serif italic size={32}>you care for.</Text>
@@ -161,7 +68,10 @@ export default function TodayScreen() {
 
       {people && people.length > 0 && (
         <>
-          <Animated.View key={next?.key ?? 'none'} entering={FadeIn.duration(260)} style={[styles.lead, styles.thinRule]}>
+          <Animated.View
+            key={next?.key ?? 'none'}
+            entering={FadeIn.duration(260)}
+            style={[styles.lead, styles.thinRule, { borderTopColor: colors.border }]}>
             {next ? (
               <>
                 <Label color={colors.accent}>{next.time ? `Next, ${whenText(next.time)}` : 'Next'}</Label>
@@ -196,47 +106,61 @@ export default function TodayScreen() {
 
           {items.length > 1 && (
             <Animated.View layout={LinearTransition.duration(240)}>
-              <Card>
-                <SectionTitle title="The rest of today" right={`${done.length} of ${items.length} done`} />
-                <View>
-                  {rest.map((item, index) => (
-                    <Animated.View
-                      key={item.key}
-                      entering={FadeIn.duration(220)}
-                      exiting={FadeOut.duration(140)}
-                      layout={LinearTransition.duration(240)}>
-                      {index > 0 && <Hairline />}
-                      <CheckRow
-                        time={item.time}
-                        title={item.title}
-                        aside={byId.get(item.personId)!.name}
-                        checked={item.doneId !== null}
-                        label={`${item.title}, ${byId.get(item.personId)!.name}${item.time ? `, ${formatTime(item.time)}` : ''}`}
-                        onPress={() => toggle(item)}
-                      />
-                    </Animated.View>
-                  ))}
-                </View>
-                {later.length > SHOWN || done.length > 0 ? (
-                  <LinkButton title={showAll ? 'Show less' : 'See the whole day →'} onPress={() => setShowAll(!showAll)} />
-                ) : null}
+              <Card style={{ gap: 0 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`The whole day, ${done.length} of ${items.length} done`}
+                  onPress={openDay}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.sectionHead, pressed && styles.pressed]}>
+                  <Label color={colors.ink}>{after.length ? 'After that' : 'Today'}</Label>
+                  <View style={styles.headRight}>
+                    <Text weight={600} size={12} color={colors.muted}>
+                      {`${done.length} of ${items.length} done`}
+                    </Text>
+                    <Icon name="chevron" size={16} color={colors.muted} />
+                  </View>
+                </Pressable>
+                {after.map((item, index) => (
+                  <Animated.View
+                    key={item.key}
+                    entering={FadeIn.duration(220)}
+                    exiting={FadeOut.duration(140)}
+                    layout={LinearTransition.duration(240)}>
+                    {index > 0 && <Hairline />}
+                    <CheckRow
+                      time={item.time}
+                      title={item.title}
+                      aside={byId.get(item.personId)!.name}
+                      checked={false}
+                      label={`${item.title}, ${byId.get(item.personId)!.name}${item.time ? `, ${formatTime(item.time)}` : ''}`}
+                      onPress={() => toggle(item)}
+                    />
+                  </Animated.View>
+                ))}
+                <LinkButton title="See the whole day →" onPress={openDay} />
               </Card>
             </Animated.View>
           )}
 
           <Animated.View layout={LinearTransition.duration(240)}>
             <Card style={{ gap: 2 }}>
-              <SectionTitle title="In this handbook" />
+              <Label color={colors.ink}>In this handbook</Label>
               {people.map((person) => {
                 const note = aside(person);
                 return (
                   <Pressable
                     key={person.id}
-                    accessibilityRole="button"
+                    accessibilityRole="link"
                     accessibilityLabel={[person.name, note.text].filter(Boolean).join(', ')}
+                    accessibilityHint="Opens their page"
                     onPress={() => openPerson(person.id)}
                     style={({ pressed }) => [styles.contentsRow, pressed && styles.pressed]}>
-                    <Text serif size={24} numberOfLines={1} style={{ flexShrink: 1 }}>
+                    <Text
+                      serif
+                      size={24}
+                      numberOfLines={1}
+                      style={[styles.name, { textDecorationColor: colors.faint }]}>
                       {person.name}
                     </Text>
                     <Text size={12} color={colors.faint} numberOfLines={1} ellipsizeMode="clip" style={styles.leader}>
@@ -270,9 +194,12 @@ const LEADER = ' .'.repeat(80);
 const styles = StyleSheet.create({
   caps: { letterSpacing: 1.5, textTransform: 'uppercase' },
   lead: { gap: 12, paddingTop: 16 },
-  thinRule: { borderTopWidth: 1, borderTopColor: colors.border },
+  thinRule: { borderTopWidth: 1 },
   headline: { lineHeight: 36 },
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 32 },
+  headRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   contentsRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, minHeight: 44, paddingVertical: 4 },
+  name: { flexShrink: 1, textDecorationLine: 'underline' },
   leader: { flex: 1, minWidth: 16 },
   asideText: { maxWidth: 170, flexShrink: 0 },
   pressed: { opacity: 0.6 },

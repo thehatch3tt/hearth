@@ -9,7 +9,7 @@ import { Button, Card, Field, Hairline, Masthead, Screen, SectionTitle, Segmente
 import { type Person, type SitterLink, useQuery, useSettings } from '@/lib/db';
 import { sharingIsSetUp } from '@/lib/firebase';
 import { buildSnapshot, createLink, expiryFor, stopLink } from '@/lib/share';
-import { colors, radius } from '@/lib/theme';
+import { radius, useTheme } from '@/lib/theme';
 import { clockTime, relativeDay, todayKey } from '@/lib/time';
 
 type Expiry = 'morning' | 'three' | 'week';
@@ -24,6 +24,7 @@ const when = (ms: number) => `${relativeDay(todayKey(new Date(ms)))} ${clockTime
 
 /** A link for a sitter: choose the pages, add a note, send. No app or account needed on their end. */
 export default function ShareScreen() {
+  const { colors } = useTheme();
   const db = useSQLiteContext();
   const settings = useSettings();
   const people = useQuery<Person>('SELECT * FROM people ORDER BY sort, id');
@@ -91,7 +92,7 @@ export default function ShareScreen() {
       </Title>
 
       {!sharingIsSetUp && (
-        <View style={styles.notice}>
+        <View style={[styles.notice, { backgroundColor: colors.alert }]}>
           <Text weight={700} size={11} color={colors.alertText} style={ui.label}>
             Not set up yet
           </Text>
@@ -197,7 +198,7 @@ export default function ShareScreen() {
 }
 
 const styles = StyleSheet.create({
-  notice: { backgroundColor: colors.alert, borderRadius: radius.small, paddingVertical: 14, paddingHorizontal: 16, gap: 6 },
+  notice: { borderRadius: radius.small, paddingVertical: 14, paddingHorizontal: 16, gap: 6 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   footnote: { textAlign: 'center', lineHeight: 19, paddingHorizontal: 8 },
   link: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 64, paddingVertical: 8 },

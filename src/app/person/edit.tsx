@@ -25,7 +25,7 @@ import {
   useQuery,
   type Word,
 } from '@/lib/db';
-import { colors, PERSON_COLORS, personColor, type PersonColor } from '@/lib/theme';
+import { PERSON_COLORS, type PersonColor, useTheme } from '@/lib/theme';
 import { longDay, todayKey } from '@/lib/time';
 
 /** Where the time picker starts for a routine, so a bedtime routine doesn't start in the morning. */
@@ -48,6 +48,7 @@ export default function EditPersonScreen() {
 }
 
 function AddPerson() {
+  const { colors } = useTheme();
   const db = useSQLiteContext();
   const used = useQuery<{ color: string }>('SELECT color FROM people');
   const [name, setName] = useState('');
@@ -94,6 +95,7 @@ function AddPerson() {
 type SectionName = 'basics' | 'alerts' | 'medicine' | 'routines' | 'appointments' | 'notes' | 'words';
 
 function EditPerson({ personId }: { personId: number }) {
+  const { colors, person: shadesOf } = useTheme();
   const db = useSQLiteContext();
   // One section open at a time, so the page stays short.
   const [open, setOpen] = useState<SectionName | null>(null);
@@ -166,7 +168,7 @@ function EditPerson({ personId }: { personId: number }) {
       <Masthead
         back
         label="Editing"
-        color={personColor(person.color).strong}
+        color={shadesOf(person.color).strong}
         right={<PillButton title="Done" onPress={() => router.back()} />}
       />
       <Title size={56} deck="Tap a section to open it.">
@@ -240,7 +242,7 @@ function EditPerson({ personId }: { personId: number }) {
         <Section title="Routines" summary={routineSummary} {...section('routines')}>
           <Hint>Each step can be checked off on their page as it’s done. Checks start fresh every day.</Hint>
           {routines?.map((routine) => (
-            <View key={routine.id} style={styles.routine}>
+            <View key={routine.id} style={[styles.routine, { borderTopColor: colors.track }]}>
               <View style={ui.row}>
                 <Select
                   title="Which routine"
@@ -335,7 +337,7 @@ function EditPerson({ personId }: { personId: number }) {
       </Card>
 
       <Animated.View layout={LinearTransition.duration(240)}>
-        <Pressable accessibilityRole="button" onPress={confirmDelete} style={({ pressed }) => [styles.delete, pressed && { opacity: 0.6 }]}>
+        <Pressable accessibilityRole="button" onPress={confirmDelete} style={({ pressed }) => [styles.delete, { borderTopColor: colors.ink }, pressed && { opacity: 0.6 }]}>
           <Icon name="trash" size={18} color={colors.danger} />
           <Text weight={700} size={15} color={colors.danger} numberOfLines={1}>
             Delete {person.name}
@@ -363,6 +365,7 @@ function Section({
   first?: boolean;
   children: ReactNode;
 }) {
+  const { colors } = useTheme();
   return (
     <Animated.View layout={LinearTransition.duration(240)}>
       {!first && <Hairline />}
@@ -411,11 +414,12 @@ function KindPicker({ value, onChange }: { value: PersonKind; onChange: (kind: P
 }
 
 function ColorPicker({ value, onChange }: { value: string; onChange: (color: PersonColor) => void }) {
+  const { colors, person: shadesOf } = useTheme();
   return (
     <Field label="Their color">
       <View style={styles.swatches}>
         {PERSON_COLORS.map((name) => {
-          const selected = name === value || personColor(value) === personColor(name);
+          const selected = name === value || shadesOf(value) === shadesOf(name);
           return (
             <Pressable
               key={name}
@@ -427,8 +431,8 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (color: Per
                 onChange(name);
               }}
               hitSlop={4}
-              style={[styles.swatch, { backgroundColor: personColor(name).soft }, selected && styles.swatchSelected]}>
-              {selected && <Icon name="check" size={16} color={personColor(name).strong} strokeWidth={3} />}
+              style={[styles.swatch, { backgroundColor: shadesOf(name).soft }, selected && [styles.swatchSelected, { borderColor: colors.background, outlineColor: colors.ink }]]}>
+              {selected && <Icon name="check" size={16} color={shadesOf(name).strong} strokeWidth={3} />}
             </Pressable>
           );
         })}
@@ -440,10 +444,10 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (color: Per
 const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 12 },
   sectionBody: { gap: 14, paddingBottom: 20 },
-  routine: { gap: 10, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.track },
+  routine: { gap: 10, paddingTop: 14, borderTopWidth: 1 },
   swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   swatch: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  swatchSelected: { borderWidth: 3, borderColor: colors.card, outlineWidth: 2, outlineColor: colors.ink },
+  swatchSelected: { borderWidth: 3, outlineWidth: 2 },
   routineTrash: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
-  delete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, borderTopWidth: 1, borderTopColor: colors.ink },
+  delete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, borderTopWidth: 1 },
 });

@@ -1,7 +1,7 @@
 /** Outline icons (never emoji), drawn the same way as in the mockups: 24×24, round line ends. */
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import { colors } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 const shapes = {
   back: <Path d="M15 6l-6 6 6 6" />,
@@ -137,7 +137,7 @@ export type IconName = keyof typeof shapes;
 export function Icon({
   name,
   size = 20,
-  color = colors.ink,
+  color,
   strokeWidth = 2,
 }: {
   name: IconName;
@@ -145,13 +145,14 @@ export function Icon({
   color?: string;
   strokeWidth?: number;
 }) {
+  const { colors } = useTheme();
   return (
     <Svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke={color}
+      stroke={color ?? colors.ink}
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round">

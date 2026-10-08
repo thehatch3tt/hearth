@@ -5,10 +5,11 @@ import { SettingInput } from '@/components/SettingInput';
 import { Card, Masthead, PillButton, Screen, SectionTitle, Title } from '@/components/ui';
 import { contactLabels } from '@/lib/choices';
 import { type Contact, useQuery, useSettings } from '@/lib/db';
-import { colors } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 /** The address and phone numbers on the emergency card. (Allergies come from each person's page.) */
 export default function EditEmergencyScreen() {
+  const { colors } = useTheme();
   const settings = useSettings();
   const contacts = useQuery<Contact>('SELECT * FROM contacts ORDER BY sort, id');
 

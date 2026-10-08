@@ -21,8 +21,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { Button, tap, Text, styles as ui } from '@/components/ui';
-import { colors, radius } from '@/lib/theme';
+import { Button, tap, Text, useInputStyle } from '@/components/ui';
+import { radius, useTheme } from '@/lib/theme';
 import { formatTime, longDay, todayKey, type Option } from '@/lib/time';
 
 type BoxProps = {
@@ -93,6 +93,8 @@ function PickerBox({
   shown,
   children,
 }: BoxProps & { shown: string; children: (choose: (value: string) => void) => ReactNode }) {
+  const { colors } = useTheme();
+  const input = useInputStyle();
   const [open, setOpen] = useState(false);
   const choose = (choice: string) => {
     setOpen(false);
@@ -105,7 +107,7 @@ function PickerBox({
         accessibilityRole="button"
         accessibilityLabel={`${title}: ${shown || 'not chosen'}`}
         onPress={() => setOpen(true)}
-        style={({ pressed }) => [ui.input, styles.box, style, pressed && { opacity: 0.7 }]}>
+        style={({ pressed }) => [input, styles.box, style, pressed && { opacity: 0.7 }]}>
         <Text size={15} weight={shown ? 600 : 500} color={shown ? colors.ink : colors.faint} numberOfLines={1} style={{ flex: 1 }}>
           {shown || placeholder}
         </Text>
@@ -122,13 +124,14 @@ function PickerBox({
 
 /** A sheet that slides up from the bottom, with a title and Cancel. Draw it only while open. */
 export function BottomSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
-      <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={onClose} />
+      <Pressable accessibilityLabel="Close" style={[styles.backdrop, { backgroundColor: colors.backdrop }]} onPress={onClose} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap} pointerEvents="box-none">
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-          <View style={styles.grabber} />
+        <View style={[styles.sheet, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
+          <View style={[styles.grabber, { backgroundColor: colors.border }]} />
           <View style={styles.header}>
             <Text serif size={28} numberOfLines={1} style={{ flex: 1, lineHeight: 33 }}>
               {title}
@@ -148,6 +151,7 @@ export function BottomSheet({ title, onClose, children }: { title: string; onClo
 
 /** A small rounded button that can be selected. */
 export function Chip({ label, selected, onPress, style }: { label: string; selected?: boolean; onPress: () => void; style?: StyleProp<ViewStyle> }) {
+  const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -156,8 +160,13 @@ export function Chip({ label, selected, onPress, style }: { label: string; selec
         tap();
         onPress();
       }}
-      style={({ pressed }) => [styles.chip, selected && styles.chipSelected, pressed && { opacity: 0.7 }, style]}>
-      <Text weight={selected ? 700 : 600} size={15} color={selected ? '#FFFFFF' : colors.ink}>
+      style={({ pressed }) => [
+        styles.chip,
+        selected ? { backgroundColor: colors.accent, borderColor: colors.accent } : { backgroundColor: colors.card, borderColor: colors.border },
+        pressed && { opacity: 0.7 },
+        style,
+      ]}>
+      <Text weight={selected ? 700 : 600} size={15} color={selected ? colors.onAccent : colors.ink}>
         {label}
       </Text>
     </Pressable>
@@ -177,6 +186,8 @@ function ChoiceSheet({
   clearLabel?: string;
   onChoose: (value: string) => void;
 }) {
+  const { colors } = useTheme();
+  const input = useInputStyle();
   const isPreset = options.some((o) => o.value === value);
   const [typed, setTyped] = useState(isPreset ? '' : value);
   return (
@@ -196,14 +207,14 @@ function ChoiceSheet({
             placeholderTextColor={colors.faint}
             returnKeyType="done"
             onSubmitEditing={() => typed.trim() && onChoose(typed.trim())}
-            style={[ui.input, { flex: 1 }]}
+            style={[input, { flex: 1 }]}
           />
           <Pressable
             accessibilityRole="button"
             disabled={!typed.trim()}
             onPress={() => onChoose(typed.trim())}
-            style={[styles.use, !typed.trim() && { opacity: 0.4 }]}>
-            <Text weight={700} size={15} color="#FFFFFF">
+            style={[styles.use, { backgroundColor: colors.accent }, !typed.trim() && { opacity: 0.4 }]}>
+            <Text weight={700} size={15} color={colors.onAccent}>
               Use
             </Text>
           </Pressable>
@@ -253,6 +264,7 @@ function TimeSheet({ value, clearLabel, onChoose }: { value: string; clearLabel?
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function DaySheet({ value, onChoose }: { value: string; onChoose: (value: string) => void }) {
+  const { colors } = useTheme();
   const today = todayKey();
   const start = (value || today).split('-').map(Number);
   const [month, setMonth] = useState({ year: start[0], month: start[1] - 1 });
@@ -306,8 +318,13 @@ function DaySheet({ value, onChoose }: { value: string; onChoose: (value: string
               accessibilityState={{ selected }}
               onPress={() => onChoose(key)}
               style={styles.cell}>
-              <View style={[styles.day, key === today && styles.today, selected && styles.chipSelected]}>
-                <Text weight={selected ? 700 : 500} size={16} color={selected ? '#FFFFFF' : past ? colors.faint : colors.ink}>
+              <View
+                style={[
+                  styles.day,
+                  key === today && { borderWidth: 2, borderColor: colors.accent },
+                  selected && { backgroundColor: colors.accent },
+                ]}>
+                <Text weight={selected ? 700 : 500} size={16} color={selected ? colors.onAccent : past ? colors.faint : colors.ink}>
                   {day}
                 </Text>
               </View>
@@ -321,16 +338,15 @@ function DaySheet({ value, onChoose }: { value: string; onChoose: (value: string
 
 const styles = StyleSheet.create({
   box: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(20, 20, 20, 0.36)' },
+  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   sheetWrap: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     maxHeight: '85%',
-    backgroundColor: colors.background,
     borderTopLeftRadius: radius.big,
     borderTopRightRadius: radius.big,
     paddingHorizontal: 18,
   },
-  grabber: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.border, marginTop: 8 },
+  grabber: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, marginTop: 8 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -339,19 +355,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
   // Six hours to a row.
   hour: { flexBasis: '14%', flexGrow: 1, paddingHorizontal: 0 },
   custom: { flexDirection: 'row', gap: 8 },
-  use: { height: 44, paddingHorizontal: 18, borderRadius: radius.small, backgroundColor: colors.accent, justifyContent: 'center' },
+  use: { height: 44, paddingHorizontal: 18, borderRadius: radius.small, justifyContent: 'center' },
   arrow: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   calendar: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, height: 44, alignItems: 'center', justifyContent: 'center' },
   day: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  today: { borderWidth: 2, borderColor: colors.accent },
 });

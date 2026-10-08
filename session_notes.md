@@ -22,7 +22,8 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
 ## Where things stand (end of 2026-10-07)
 
 - **Committed and pushed:** everything up to `16db670`, including the Editorial with glass look and tab navigation on every screen.
-- **Chosen app icon:** the heart-window house on a linen background (see "App icon" below). Not made into real icon files yet.
+- **Not committed yet (2026-10-07):** the app icon and splash (see "App icon"), dark mode, the tidier Settings, the whole-day page, and underlined names on Today.
+- **Today layout:** the user chose **D · Front page** (2026-10-07), which is what's built.
 - **Waiting on the user:** creating the Firebase project (see "Sitter links").
 
 ## Current look: Editorial with glass (chosen later on 2026-10-07)
@@ -42,6 +43,17 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
   - Folding sections on the edit page, the rest of today, and lists animate in and out with Reanimated layout transitions.
   - Chips are white with a thin edge (rust when chosen); sheets sit on paper with serif titles. The emergency card stays dark, with names and the address in serif.
 - The Figtree and Fraunces font packages are no longer used and can be removed.
+
+## Dark mode, Settings and the whole day (built 2026-10-07)
+
+- **Dark mode:** Settings › Appearance: Like the phone (default), Light or Dark, saved as the `appearance` setting. `lib/theme.ts` has a light and a dark palette (warm near-black paper `#151412`, cream ink `#F1EDE5`, lighter rust `#E07A4F` with dark text on rust buttons) and dark person colors. Screens read colors with `useTheme()`; `components/ThemeProvider.tsx` applies the choice (also to the keyboard, alerts and Liquid Glass via `Appearance.setColorScheme`) and holds the splash until it has loaded. Stylesheets hold no colors any more: colors go inline from `useTheme()`. The emergency card stays dark in both; the sitter's shared page is always light. `app.json` now has `userInterfaceStyle: automatic`, which needs a new native build.
+- **Settings:** two lines (Family name, Your name) typed in place in italic serif, instead of two big boxes; then Appearance.
+- **The whole day** (`src/app/day.tsx`): everything for today in Morning, Afternoon, Evening and Any time, done items struck through in place. Today shows the next thing and three after it; the section heading and "See the whole day →" open this page. The list logic is shared in `lib/day.ts`.
+- **Names that look tappable:** names in "In this handbook" are underlined.
+
+## Today layouts (mocked up 2026-10-07)
+
+On the canvas, row "Today: layouts to choose from": **D · Front page** (what's built now), **E · Timeline** (done items above a rust "now" line, the next item large, the rest below), **F · By person** (each person's name as a heading with their items under it), **G · Contents first** (the family name, a glass "Next" card, then a numbered contents list) and **H · Front page at night** (D in dark mode).
 
 ## Previous look: Linen bento with a bold serif header (replaced)
 
@@ -67,10 +79,11 @@ Chosen on 2026-10-07 after a long design search (see "Design history").
 - **Concept 4, "Heart window":** a terracotta (`#A2452A`) house with a cream (`#F4EFE6`) heart-shaped window, on a **linen background**. The user asked for linen instead of the near-white cream.
 - **The linen in the mockup:** `#E6D8C3` with a faint woven texture (fine light horizontal lines and soft brown vertical lines).
 - **Mockup:** the "App icon ideas" board on the design canvas, marked "chosen". The other five concepts (home flame, open handbook, H monogram, hearth arch, bookmark flame) are there for reference.
-- **To do:**
-  - Make the real files: `assets/images/icon.png` at 1024×1024, and the Android adaptive icon foreground and background.
-  - Set the splash background to linen in `app.json`.
-  - Check how it reads at 29 px. Keep the texture subtle, or drop it at small sizes if it muddies.
+- **Made (2026-10-07):**
+  - A house with a chimney and rounded corners, in terracotta, with a cream heart window. Drawn as SVG and rendered to PNG by a throwaway script (not in the repo; the shapes are in `assets/hearth.icon/Assets/house.svg`).
+  - `assets/images/icon.png` (1024, linen with a faint weave), the Android adaptive layers (foreground, linen background and monochrome, with the house at 72% so it clears the circle mask), `splash-icon.png` (the house alone; the splash background is linen `#E6D8C3`, width 180) and `favicon.png`.
+  - iOS uses an Icon Composer file, `assets/hearth.icon`, so iOS 26 gives the house Liquid Glass: a linen automatic gradient behind it, translucency off. It replaced the Expo template `expo.icon`. Its JSON was copied from the template, because the format for a plain solid fill could not be confirmed. **Not checked in a real iOS build yet.**
+  - Checked: it reads at 29 px; the Android prebuild made the launcher icons correctly. The splash only shows in a preview or production build, not in Expo Go or a development build.
 
 ## Data and sharing (decided 2026-10-07)
 
@@ -136,8 +149,9 @@ All mockups are on the design canvas: https://claude.ai/artifact/JAot5UYvpHQ5sRP
 
 1. **The user tests Editorial on a phone** (every screen). Adjust anything they notice, then commit and push. A development build needs rebuilding for haptics.
 2. Remove the unused Figtree and Fraunces font packages.
-3. **Make the app icon** (heart window on linen) and set the splash.
-4. **Firebase:** when the user has created the project, connect it, deploy the link page to Vercel, restyle it to Editorial, and send a real test link.
-5. Later: care-team sharing (Apple/Google sign-in, encrypted sync), App Check, the store build.
+3. Today stays on **D · Front page** for now; E (the "now" line) and the others are on the canvas if it changes.
+4. **Check the icon and splash in a real build** (EAS preview build), especially the iOS Liquid Glass icon.
+5. **Firebase:** when the user has created the project, connect it, deploy the link page to Vercel, restyle it to Editorial, and send a real test link.
+6. Later: care-team sharing (Apple/Google sign-in, encrypted sync), App Check, the store build.
 
 GitHub: https://github.com/thehatch3tt/hearth (private, branch `master`). The `gh` CLI isn't installed here; plain `git push` works.

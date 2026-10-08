@@ -22,7 +22,7 @@ import {
   useSettings,
   type Word,
 } from '@/lib/db';
-import { colors, personColor, radius } from '@/lib/theme';
+import { radius, useTheme } from '@/lib/theme';
 import { clockTime, dayParts, formatTime, minutesUntil, relativeDay, todayKey } from '@/lib/time';
 
 /** The line under a person's name: "6 years old · 1st grade · 45 lb". */
@@ -34,6 +34,7 @@ function describePerson(person: Person) {
 
 /** A person's page in the handbook: warnings first, then today, what's coming, and what to know. */
 export default function PersonScreen() {
+  const { colors, person: shadesOf } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const personId = Number(id);
   const today = todayKey();
@@ -77,7 +78,7 @@ export default function PersonScreen() {
     );
   }
 
-  const c = personColor(person.color);
+  const c = shadesOf(person.color);
   const daily = medicines?.filter((m) => m.time) ?? [];
   const asNeeded = medicines?.filter((m) => !m.time) ?? [];
   const isEmpty =
@@ -103,7 +104,7 @@ export default function PersonScreen() {
       {alerts && alerts.length > 0 && (
         <View style={{ gap: 10 }}>
           {alerts.map((alert) => (
-            <View key={alert.id} style={styles.alert}>
+            <View key={alert.id} style={[styles.alert, { backgroundColor: colors.alert }]}>
               <Label color={colors.alertText}>Warning</Label>
               {alert.title ? (
                 <Text serif size={26} color={colors.alertInk} style={{ lineHeight: 30 }}>
@@ -190,7 +191,7 @@ export default function PersonScreen() {
           <SectionTitle title="Good to know" />
           <View style={styles.grid}>
             {asNeeded.map((medicine) => (
-              <View key={`m${medicine.id}`} style={styles.note}>
+              <View key={`m${medicine.id}`} style={[styles.note, { borderTopColor: colors.track }]}>
                 <Label>Medicine as needed</Label>
                 <Text size={15} style={styles.noteText}>
                   <Text weight={700} size={15}>
@@ -201,7 +202,7 @@ export default function PersonScreen() {
               </View>
             ))}
             {notes?.map((note) => (
-              <View key={note.id} style={styles.note}>
+              <View key={note.id} style={[styles.note, { borderTopColor: colors.track }]}>
                 {note.label ? <Label>{note.label}</Label> : null}
                 <Text size={15} style={styles.noteText}>
                   {note.text}
@@ -248,6 +249,7 @@ export default function PersonScreen() {
 }
 
 function MedicineRow({ medicine, dose }: { medicine: Medicine; dose?: Dose }) {
+  const { colors } = useTheme();
   const db = useSQLiteContext();
   const settings = useSettings();
 
@@ -294,11 +296,11 @@ function MedicineRow({ medicine, dose }: { medicine: Medicine; dose?: Dose }) {
 
 const styles = StyleSheet.create({
   swatch: { width: 28, height: 4, borderRadius: 2 },
-  alert: { backgroundColor: colors.alert, borderRadius: radius.small, paddingVertical: 14, paddingHorizontal: 16, gap: 6 },
+  alert: { borderRadius: radius.small, paddingVertical: 14, paddingHorizontal: 16, gap: 6 },
   visit: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 10 },
   date: { width: 52, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 14 },
-  note: { flexGrow: 1, flexBasis: '42%', gap: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.track },
+  note: { flexGrow: 1, flexBasis: '42%', gap: 4, paddingTop: 8, borderTopWidth: 1 },
   noteText: { lineHeight: 21 },
   word: { gap: 2, paddingVertical: 10 },
 });

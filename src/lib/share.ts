@@ -27,7 +27,7 @@ import {
   type Word,
 } from '@/lib/db';
 import { firestore, VIEWER_URL } from '@/lib/firebase';
-import { personColor } from '@/lib/theme';
+import { makeTheme } from '@/lib/theme';
 
 /** What the sitter's page shows. Version 1. */
 export type Snapshot = {
@@ -95,7 +95,8 @@ export async function buildSnapshot(db: SQLiteDatabase, settings: Settings, choi
     );
     const notes = await db.getAllAsync<Note>("SELECT * FROM notes WHERE person_id = ? AND text != '' ORDER BY sort, id", [id]);
     const words = await db.getAllAsync<Word>("SELECT * FROM words WHERE person_id = ? AND word != '' ORDER BY sort, id", [id]);
-    const c = personColor(person.color);
+    // The sitter's page is always light.
+    const c = makeTheme('light').person(person.color);
     people.push({
       name: person.name,
       kind: person.kind,

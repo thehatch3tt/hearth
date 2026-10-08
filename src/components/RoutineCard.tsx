@@ -4,7 +4,7 @@ import { Fragment } from 'react';
 
 import { Card, CheckRow, Hairline, SectionTitle, Text } from '@/components/ui';
 import { deleteRow, insertRow, type Routine, type RoutineStep, type StepCheck, useSettings } from '@/lib/db';
-import { colors } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 import { clockTime, formatTime, todayKey } from '@/lib/time';
 
 /** Records a step as done now, today. */
@@ -22,6 +22,7 @@ export function RoutineCard({
   /** Today's checks for these steps. */
   checks: StepCheck[];
 }) {
+  const { colors } = useTheme();
   const db = useSQLiteContext();
   const settings = useSettings();
   const done = steps.filter((step) => checks.some((c) => c.step_id === step.id)).length;

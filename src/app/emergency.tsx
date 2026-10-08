@@ -6,12 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
 import { Button, Card, Label, RoundButton, Screen, Text } from '@/components/ui';
 import { type Alert, type Contact, type Person, useQuery, useSettings } from '@/lib/db';
-import { colors, emergency, radius } from '@/lib/theme';
+import { emergency, radius, useTheme } from '@/lib/theme';
 
 const call = (phone: string) => Linking.openURL(`tel:${phone.replace(/[^\d+*#]/g, '')}`);
 
 /** The dark card for when something goes wrong. Everything on it is on the phone, so it works offline. */
 export default function EmergencyScreen() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const settings = useSettings();
   const contacts = useQuery<Contact>("SELECT * FROM contacts WHERE phone != '' ORDER BY sort, id");

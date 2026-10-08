@@ -1,10 +1,11 @@
 import { Tabs } from 'expo-router';
 
 import { TabBar } from '@/components/TabBar';
-import { colors } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 /** The four tabs, with the floating glass menu bar (components/TabBar.tsx) instead of the stock one. */
 export default function TabsLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       tabBar={(props) => <TabBar {...props} />}

@@ -8,7 +8,7 @@ import { BottomSheet, Chip } from '@/components/Select';
 import { Button, Card, Field, Hairline, Masthead, PillButton, Screen, Text, Title, styles as ui } from '@/components/ui';
 import { houseLabels } from '@/lib/choices';
 import { deleteRow, type HouseItem, insertRow, updateRow, useQuery } from '@/lib/db';
-import { colors } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 /** A small picture for a house item, from words in its label. */
 function iconFor(label: string): IconName {
@@ -34,6 +34,7 @@ type Editing = { item?: HouseItem; label?: string };
 
 /** Wi-Fi, the alarm, where things are: one short list. Tap a row to change it. */
 export default function HouseScreen() {
+  const { colors } = useTheme();
   const items = useQuery<HouseItem>('SELECT * FROM house_items ORDER BY sort, id');
   const [editing, setEditing] = useState<Editing | null>(null);
   const filled = items?.filter((item) => item.label || item.value || item.secret) ?? [];
@@ -76,6 +77,7 @@ export default function HouseScreen() {
 }
 
 function HouseRow({ item, onEdit }: { item: HouseItem; onEdit: () => void }) {
+  const { colors } = useTheme();
   // A password goes back to dots whenever this page opens again.
   const [shown, setShown] = useState(false);
   return (
@@ -125,6 +127,7 @@ function HouseRow({ item, onEdit }: { item: HouseItem; onEdit: () => void }) {
 
 /** Adds or changes one house item. */
 function HouseSheet({ item, label: preset, sort, onClose }: Editing & { sort: number; onClose: () => void }) {
+  const { colors } = useTheme();
   const db = useSQLiteContext();
   const [label, setLabel] = useState(item?.label ?? preset ?? '');
   const [value, setValue] = useState(item?.value ?? '');

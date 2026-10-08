@@ -5,10 +5,11 @@ import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { Icon } from '@/components/Icon';
 import { Avatar, Button, Card, Hairline, Label, Masthead, Screen, Text, Title } from '@/components/ui';
 import { type Person, useQuery } from '@/lib/db';
-import { colors } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 /** Everyone in the handbook, one per row: their name as a headline, what to know under it. */
 export default function FamilyScreen() {
+  const { colors } = useTheme();
   const people = useQuery<Person>('SELECT * FROM people ORDER BY sort, id');
   const warnings = useQuery<{ person_id: number; title: string }>(
     "SELECT person_id, title FROM alerts WHERE title != '' ORDER BY sort, id",

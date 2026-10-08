@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassButton, GlassIconButton } from '@/components/Glass';
 import { Icon, type IconName } from '@/components/Icon';
-import { colors, fonts, personColor, radius, serif, TAB_BAR_SPACE, type Weight } from '@/lib/theme';
+import { fonts, radius, serif, TAB_BAR_SPACE, useTheme, type Weight } from '@/lib/theme';
 import { formatTime } from '@/lib/time';
 
 /** A light tap under the finger when something is ticked off or chosen. */
@@ -36,20 +36,22 @@ export function tap() {
 export function Text({
   weight = 500,
   size = 15,
-  color = colors.ink,
+  color,
   serif: useSerif = false,
   italic = false,
   style,
   ...props
 }: TextProps & { weight?: Weight; size?: number; color?: string; serif?: boolean; italic?: boolean }) {
+  const { colors } = useTheme();
   const family = useSerif ? (italic ? serif.italic : serif.regular) : fonts[weight];
-  return <RNText {...props} style={[{ fontFamily: family, fontSize: size, color }, style]} />;
+  return <RNText {...props} style={[{ fontFamily: family, fontSize: size, color: color ?? colors.ink }, style]} />;
 }
 
 /** A small-caps label, widely spaced like a magazine's ("COMFORT", "READ THIS TO THE OPERATOR"). */
-export function Label({ children, color = colors.muted, numberOfLines }: { children: ReactNode; color?: string; numberOfLines?: number }) {
+export function Label({ children, color, numberOfLines }: { children: ReactNode; color?: string; numberOfLines?: number }) {
+  const { colors } = useTheme();
   return (
-    <Text weight={700} size={11} color={color} numberOfLines={numberOfLines} style={styles.label}>
+    <Text weight={700} size={11} color={color ?? colors.muted} numberOfLines={numberOfLines} style={styles.label}>
       {children}
     </Text>
   );
@@ -63,8 +65,8 @@ export function Masthead({
   label,
   back = false,
   right,
-  color = colors.ink,
-  rule = colors.ink,
+  color,
+  rule,
 }: {
   label: string;
   back?: boolean;
@@ -72,8 +74,9 @@ export function Masthead({
   color?: string;
   rule?: string;
 }) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.masthead, { borderBottomColor: rule }]}>
+    <View style={[styles.masthead, { borderBottomColor: rule ?? colors.ink }]}>
       {back && <GlassIconButton icon="back" label="Back" onPress={() => router.back()} />}
       <Text weight={700} size={11} color={color} numberOfLines={1} style={[styles.label, { flex: 1 }]}>
         {label}
@@ -91,8 +94,8 @@ export function Title({
   children,
   deck,
   size = 56,
-  color = colors.ink,
-  deckColor = colors.muted,
+  color,
+  deckColor,
 }: {
   children: ReactNode;
   deck?: ReactNode;
@@ -100,6 +103,7 @@ export function Title({
   color?: string;
   deckColor?: string;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.title}>
       <Text
@@ -113,7 +117,7 @@ export function Title({
         {children}
       </Text>
       {deck ? (
-        <Text serif italic size={22} color={deckColor} numberOfLines={2} style={styles.deck}>
+        <Text serif italic size={22} color={deckColor ?? colors.muted} numberOfLines={2} style={styles.deck}>
           {deck}
         </Text>
       ) : null}
@@ -126,14 +130,19 @@ export function Title({
  * white rounded card instead, for things that must stand apart (the emergency card's address).
  */
 export function Card({ children, style, boxed }: { children: ReactNode; style?: StyleProp<ViewStyle>; boxed?: boolean }) {
-  return <View style={[boxed ? styles.box : styles.card, style]}>{children}</View>;
+  const { colors } = useTheme();
+  return (
+    <View style={[boxed ? [styles.box, { backgroundColor: colors.card }] : [styles.card, { borderTopColor: colors.ink }], style]}>
+      {children}
+    </View>
+  );
 }
 
 /** A scrolling page on the paper background, with room for the phone's notch and home bar. */
 export function Screen({
   children,
   header,
-  background = colors.background,
+  background,
   tabBar = false,
 }: {
   children: ReactNode;
@@ -144,9 +153,10 @@ export function Screen({
   tabBar?: boolean;
 }) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: background }}
+      style={{ flex: 1, backgroundColor: background ?? colors.background }}
       contentContainerStyle={{ paddingBottom: insets.bottom + 32 + (tabBar ? TAB_BAR_SPACE : 0) }}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="interactive"
@@ -162,8 +172,8 @@ export function RoundButton({
   icon,
   label,
   onPress,
-  background = colors.card,
-  color = colors.ink,
+  background,
+  color,
 }: {
   icon: IconName;
   label: string;
@@ -171,14 +181,15 @@ export function RoundButton({
   background?: string;
   color?: string;
 }) {
+  const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
       hitSlop={4}
-      style={({ pressed }) => [styles.round, { backgroundColor: background }, pressed && styles.pressed]}>
-      <Icon name={icon} color={color} strokeWidth={2.2} />
+      style={({ pressed }) => [styles.round, { backgroundColor: background ?? colors.card }, pressed && styles.pressed]}>
+      <Icon name={icon} color={color ?? colors.ink} strokeWidth={2.2} />
     </Pressable>
   );
 }
@@ -193,7 +204,7 @@ export function Button({
   title,
   icon,
   quiet,
-  color = colors.accent,
+  color: given,
   style,
   ...props
 }: PressableProps & {
@@ -203,7 +214,9 @@ export function Button({
   color?: string;
   style?: StyleProp<ViewStyle>;
 }) {
-  const textColor = quiet ? color : '#FFFFFF';
+  const { colors } = useTheme();
+  const color = given ?? colors.accent;
+  const textColor = quiet ? color : colors.onAccent;
   return (
     <Pressable
       accessibilityRole="button"
@@ -224,11 +237,12 @@ export function Button({
 }
 
 /** A text link in the accent color ("+ Add"). */
-export function LinkButton({ title, onPress, color = colors.accentText }: { title: string; onPress: () => void; color?: string }) {
+export function LinkButton({ title, onPress, color }: { title: string; onPress: () => void; color?: string }) {
+  const { colors } = useTheme();
   return (
     <Pressable accessibilityRole="button" onPress={onPress} hitSlop={10} style={styles.link}>
       {({ pressed }) => (
-        <Text weight={700} size={14} color={color} style={pressed && styles.pressed}>
+        <Text weight={700} size={14} color={color ?? colors.accentText} style={pressed && styles.pressed}>
           {title}
         </Text>
       )}
@@ -238,7 +252,8 @@ export function LinkButton({ title, onPress, color = colors.accentText }: { titl
 
 /** A person's initial in a circle of their color. */
 export function Avatar({ name, color, size = 46, solid }: { name: string; color: string; size?: number; solid?: boolean }) {
-  const c = personColor(color);
+  const { colors, person } = useTheme();
+  const c = person(color);
   return (
     <View
       style={{
@@ -249,7 +264,7 @@ export function Avatar({ name, color, size = 46, solid }: { name: string; color:
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-      <Text serif size={size * 0.5} color={solid ? '#FFFFFF' : c.strong} style={{ lineHeight: size * 0.6 }}>
+      <Text serif size={size * 0.5} color={solid ? colors.background : c.strong} style={{ lineHeight: size * 0.6 }}>
         {name.trim().charAt(0).toUpperCase() || '?'}
       </Text>
     </View>
@@ -258,6 +273,7 @@ export function Avatar({ name, color, size = 46, solid }: { name: string; color:
 
 /** A section's small-caps heading, with a note or link on the right ("2 of 3 given"). */
 export function SectionTitle({ title, right, color }: { title: string; right?: ReactNode; color?: string }) {
+  const { colors } = useTheme();
   return (
     <View style={[styles.row, { justifyContent: 'space-between', alignItems: 'baseline' }]}>
       <Text weight={700} size={11} color={color} numberOfLines={1} style={[styles.label, { flexShrink: 1 }]}>
@@ -276,14 +292,16 @@ export function SectionTitle({ title, right, color }: { title: string; right?: R
 
 /** A thin rule between rows. */
 export function Hairline() {
-  return <View style={styles.hairline} />;
+  const { colors } = useTheme();
+  return <View style={[styles.hairline, { backgroundColor: colors.track }]} />;
 }
 
 /** The square box beside something to tick off; inked in once it's done. */
-export function TickBox({ checked, color = colors.ink }: { checked: boolean; color?: string }) {
+export function TickBox({ checked, color }: { checked: boolean; color?: string }) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.tick, { borderColor: checked ? colors.ink : color }, checked && styles.ticked]}>
-      {checked && <Icon name="check" size={13} color="#FFFFFF" strokeWidth={3} />}
+    <View style={[styles.tick, { borderColor: checked ? colors.ink : (color ?? colors.ink) }, checked && { backgroundColor: colors.ink }]}>
+      {checked && <Icon name="check" size={13} color={colors.background} strokeWidth={3} />}
     </View>
   );
 }
@@ -297,7 +315,7 @@ export function CheckRow({
   title,
   note,
   detail,
-  detailColor = colors.muted,
+  detailColor,
   aside,
   checked,
   boxColor,
@@ -320,6 +338,7 @@ export function CheckRow({
   label: string;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -348,7 +367,7 @@ export function CheckRow({
           ) : null}
         </Text>
         {detail ? (
-          <Text weight={600} size={13} color={detailColor}>
+          <Text weight={600} size={13} color={detailColor ?? colors.muted}>
             {detail}
           </Text>
         ) : null}
@@ -373,8 +392,10 @@ export function Segmented<T extends string>({
   value: T;
   onChange: (value: T) => void;
 }) {
+  const { colors, scheme } = useTheme();
+  const picked = { backgroundColor: scheme === 'dark' ? colors.border : colors.card, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.16)' };
   return (
-    <View style={styles.segments}>
+    <View style={[styles.segments, { backgroundColor: colors.chip }]}>
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -387,7 +408,7 @@ export function Segmented<T extends string>({
               tap();
               onChange(option.value);
             }}
-            style={[styles.segment, selected && styles.segmentSelected]}>
+            style={[styles.segment, selected && picked]}>
             <Text
               weight={selected ? 700 : 600}
               size={14}
@@ -414,6 +435,8 @@ export function SavedInput({
   style,
   ...props
 }: Omit<TextInputProps, 'value' | 'onChangeText'> & { value: string; onSave: (text: string) => void }) {
+  const { colors } = useTheme();
+  const input = useInputStyle();
   const [text, setText] = useState(value);
   // The text last handed to onSave, so the same text isn't saved twice.
   const handled = useRef(value);
@@ -443,13 +466,14 @@ export function SavedInput({
       onChangeText={setText}
       onBlur={save}
       onSubmitEditing={props.multiline ? undefined : save}
-      style={[styles.input, props.multiline && styles.multiline, style]}
+      style={[input, props.multiline && styles.multiline, style]}
     />
   );
 }
 
 /** A small-caps label over a text box. */
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  const { colors } = useTheme();
   return (
     <View style={{ gap: 6 }}>
       <Label>{label}</Label>
@@ -461,6 +485,12 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
       ) : null}
     </View>
   );
+}
+
+/** The look of a text box (or a pick list that looks like one), in the current colors. */
+export function useInputStyle() {
+  const { colors } = useTheme();
+  return [styles.input, { borderColor: colors.border, backgroundColor: colors.card, color: colors.ink }];
 }
 
 export const styles = StyleSheet.create({
@@ -476,8 +506,8 @@ export const styles = StyleSheet.create({
   },
   title: { gap: 0, marginTop: -4 },
   deck: { lineHeight: 27, paddingRight: 4 },
-  card: { borderTopWidth: 1, borderTopColor: colors.ink, paddingTop: 10, gap: 10 },
-  box: { backgroundColor: colors.card, borderRadius: radius.card, padding: 18, gap: 12 },
+  card: { borderTopWidth: 1, paddingTop: 10, gap: 10 },
+  box: { borderRadius: radius.card, padding: 18, gap: 12 },
   screenBody: { paddingHorizontal: 20, gap: 22 },
   round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   button: {
@@ -490,27 +520,22 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   link: { alignSelf: 'flex-start', paddingVertical: 6 },
-  hairline: { height: 1, backgroundColor: colors.track },
+  hairline: { height: 1 },
   tick: { width: 22, height: 22, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  ticked: { backgroundColor: colors.ink },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingVertical: 6 },
   time: { width: 64 },
   aside: { maxWidth: 96 },
   struck: { textDecorationLine: 'line-through' },
-  segments: { flexDirection: 'row', backgroundColor: colors.chip, borderRadius: 12, padding: 3 },
+  segments: { flexDirection: 'row', borderRadius: 12, padding: 3 },
   segment: { flex: 1, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  segmentSelected: { backgroundColor: colors.card, boxShadow: '0 1px 3px rgba(20, 20, 20, 0.14)' },
   input: {
     minHeight: 46,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
     paddingHorizontal: 14,
     paddingVertical: 11,
     fontFamily: fonts[500],
     fontSize: 16,
-    color: colors.ink,
   },
   multiline: { minHeight: 76, textAlignVertical: 'top' },
   pressed: { opacity: 0.6 },
