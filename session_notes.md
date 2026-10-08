@@ -21,8 +21,7 @@ Same owner as Scripture Loop (`C:\Projects\scripture-loop`, its own `session_not
 
 ## Where things stand (end of 2026-10-07)
 
-- **Committed and pushed:** everything up to `1a3965d` (handbook, routines, sharing code, Our home list, pickers), which still has the Soft garden look.
-- **Not committed yet:** the switch to the **Editorial with glass** look and **tab navigation**, now carried through every screen (see "Current look: Editorial with glass"). It replaced the uncommitted Linen look. It typechecks, lints, and bundles for iOS and Android, but **the user hasn't confirmed it on a phone yet.** Commit once they're happy.
+- **Committed and pushed:** everything up to `16db670`, including the Editorial with glass look and tab navigation on every screen.
 - **Chosen app icon:** the heart-window house on a linen background (see "App icon" below). Not made into real icon files yet.
 - **Waiting on the user:** creating the Firebase project (see "Sitter links").
 
