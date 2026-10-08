@@ -1,13 +1,14 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 
 import { Icon, type IconName } from '@/components/Icon';
 import { BottomSheet, Chip } from '@/components/Select';
-import { Button, Card, Field, PageHeader, PillButton, Screen, Text, styles as ui } from '@/components/ui';
+import { Button, Card, Field, Hairline, Masthead, PillButton, Screen, Text, Title, styles as ui } from '@/components/ui';
 import { houseLabels } from '@/lib/choices';
 import { deleteRow, type HouseItem, insertRow, updateRow, useQuery } from '@/lib/db';
-import { colors, radius } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 
 /** A small picture for a house item, from words in its label. */
 function iconFor(label: string): IconName {
@@ -40,34 +41,33 @@ export default function HouseScreen() {
   const missing = houseLabels.filter((label) => !filled.some((item) => item.label === label)).slice(0, 6);
 
   return (
-    <Screen
-      header={
-        <PageHeader right={<PillButton title="Add" onPress={() => setEditing({})} />}>
-          <Text weight={900} size={28} style={{ letterSpacing: -0.3 }}>
-            Our home
-          </Text>
-        </PageHeader>
-      }>
+    <Screen tabBar>
+      <Masthead label="Wi-Fi, codes, where things are" right={<PillButton title="Add" onPress={() => setEditing({})} />} />
+      <Title size={72}>Our home</Title>
+
       {items && filled.length === 0 && (
-        <Text weight={600} size={15} color={colors.muted} style={styles.intro}>
+        <Text serif italic size={22} color={colors.muted} style={{ lineHeight: 28 }}>
           The things a helper asks about. Passwords and codes stay hidden until someone taps them.
         </Text>
       )}
 
       {filled.length > 0 && (
-        <Card style={styles.list}>
+        <Card style={{ gap: 0 }}>
           {filled.map((item, i) => (
-            <HouseRow key={item.id} item={item} first={i === 0} onEdit={() => setEditing({ item })} />
+            <Animated.View key={item.id} entering={FadeIn} layout={LinearTransition.duration(240)}>
+              {i > 0 && <Hairline />}
+              <HouseRow item={item} onEdit={() => setEditing({ item })} />
+            </Animated.View>
           ))}
         </Card>
       )}
 
       {missing.length > 0 && (
-        <View style={styles.quick}>
+        <Animated.View layout={LinearTransition.duration(240)} style={styles.quick}>
           {missing.map((label) => (
-            <Chip key={label} label={`+ ${label}`} onPress={() => setEditing({ label })} style={styles.quickChip} />
+            <Chip key={label} label={`+ ${label}`} onPress={() => setEditing({ label })} />
           ))}
-        </View>
+        </Animated.View>
       )}
 
       {editing && <HouseSheet {...editing} sort={items?.length ?? 0} onClose={() => setEditing(null)} />}
@@ -75,32 +75,32 @@ export default function HouseScreen() {
   );
 }
 
-function HouseRow({ item, first, onEdit }: { item: HouseItem; first: boolean; onEdit: () => void }) {
+function HouseRow({ item, onEdit }: { item: HouseItem; onEdit: () => void }) {
   // A password goes back to dots whenever this page opens again.
   const [shown, setShown] = useState(false);
   return (
-    <View style={[styles.row, !first && styles.divider]}>
+    <View style={styles.row}>
       <Pressable
         accessibilityRole="button"
         accessibilityHint="Opens it to change"
         onPress={onEdit}
         style={({ pressed }) => [styles.rowMain, pressed && { opacity: 0.6 }]}>
         <View style={styles.icon}>
-          <Icon name={iconFor(item.label)} size={18} color={colors.accent} />
+          <Icon name={iconFor(item.label)} size={20} color={colors.accent} strokeWidth={1.8} />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text weight={800} size={15}>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text serif size={24} numberOfLines={1} style={{ lineHeight: 29 }}>
             {item.label || 'Untitled'}
           </Text>
           {item.value ? (
-            <Text weight={600} size={14} color={colors.muted} style={{ lineHeight: 19 }}>
+            <Text size={15} color={colors.muted} style={{ lineHeight: 21 }}>
               {item.value}
             </Text>
           ) : null}
           {item.secret ? (
             <Text
-              weight={800}
-              size={shown ? 15 : 16}
+              weight={700}
+              size={16}
               color={shown ? colors.ink : colors.muted}
               style={{ letterSpacing: shown ? 0.3 : 2 }}
               selectable={shown}>
@@ -218,22 +218,11 @@ function HouseSheet({ item, label: preset, sort, onClose }: Editing & { sort: nu
 }
 
 const styles = StyleSheet.create({
-  intro: { lineHeight: 21, paddingHorizontal: 4 },
-  list: { paddingVertical: 4, paddingHorizontal: 0, gap: 0 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingRight: 8 },
-  divider: { borderTopWidth: 1, borderTopColor: colors.chip },
-  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12, paddingLeft: 16 },
-  icon: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.small - 4,
-    backgroundColor: colors.chip,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 14 },
+  icon: { width: 24, paddingTop: 5, alignItems: 'center' },
   eye: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   quick: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  quickChip: { minHeight: 38, backgroundColor: colors.card },
   secretField: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   buttons: { flexDirection: 'row', gap: 10, marginTop: 4 },
 });

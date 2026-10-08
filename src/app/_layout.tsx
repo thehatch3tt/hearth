@@ -1,12 +1,11 @@
 import {
-  Nunito_400Regular,
-  Nunito_500Medium,
-  Nunito_600SemiBold,
-  Nunito_700Bold,
-  Nunito_800ExtraBold,
-  Nunito_900Black,
+  InstrumentSans_400Regular,
+  InstrumentSans_500Medium,
+  InstrumentSans_600SemiBold,
+  InstrumentSans_700Bold,
   useFonts,
-} from '@expo-google-fonts/nunito';
+} from '@expo-google-fonts/instrument-sans';
+import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
@@ -18,15 +17,18 @@ import { colors, emergency } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
-/** Every screen draws its own header (the colored bands in the mockups), so the stack shows none. */
+/**
+ * The tabs (Today, Family, Our home, Share) sit at the bottom of the stack; a person's page,
+ * editing, settings and the emergency card slide over them. Every screen draws its own header.
+ */
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Nunito_400Regular,
-    Nunito_500Medium,
-    Nunito_600SemiBold,
-    Nunito_700Bold,
-    Nunito_800ExtraBold,
-    Nunito_900Black,
+    InstrumentSans_400Regular,
+    InstrumentSans_500Medium,
+    InstrumentSans_600SemiBold,
+    InstrumentSans_700Bold,
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
   });
   const ready = fontsLoaded || !!fontError;
 
@@ -40,17 +42,15 @@ export default function RootLayout() {
     <SQLiteProvider databaseName={DATABASE_NAME} onInit={setUpDatabase}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-        <Stack.Screen name="index" options={{ title: 'Home' }} />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="person/[id]" />
         <Stack.Screen name="person/edit" />
-        <Stack.Screen name="house" />
         <Stack.Screen
           name="emergency"
           options={{ animation: 'slide_from_bottom', contentStyle: { backgroundColor: emergency.background } }}
         />
         <Stack.Screen name="emergency-edit" />
         <Stack.Screen name="settings" />
-        <Stack.Screen name="share" />
       </Stack>
     </SQLiteProvider>
   );

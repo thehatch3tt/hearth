@@ -1,10 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Alert as Confirm, Pressable, StyleSheet, View } from 'react-native';
+import { Fragment } from 'react';
+import { Alert as Confirm, StyleSheet, View } from 'react-native';
 
-import { Icon } from '@/components/Icon';
 import { RoutineCard } from '@/components/RoutineCard';
-import { Avatar, Card, Label, PageHeader, PillButton, Screen, SectionTitle, Text } from '@/components/ui';
+import { Card, CheckRow, Hairline, Label, Masthead, PillButton, Screen, SectionTitle, Text, Title } from '@/components/ui';
 import {
   type Alert,
   type Appointment,
@@ -23,7 +23,7 @@ import {
   type Word,
 } from '@/lib/db';
 import { colors, personColor, radius } from '@/lib/theme';
-import { clockTime, dayParts, formatTime, minutesUntil, todayKey } from '@/lib/time';
+import { clockTime, dayParts, formatTime, minutesUntil, relativeDay, todayKey } from '@/lib/time';
 
 /** The line under a person's name: "6 years old · 1st grade · 45 lb". */
 function describePerson(person: Person) {
@@ -32,6 +32,7 @@ function describePerson(person: Person) {
   return [ageText, person.about.trim()].filter(Boolean).join(' · ');
 }
 
+/** A person's page in the handbook: warnings first, then today, what's coming, and what to know. */
 export default function PersonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const personId = Number(id);
@@ -67,8 +68,11 @@ export default function PersonScreen() {
   if (person === null) {
     // Deleted (e.g. from the edit screen): nothing to show.
     return (
-      <Screen header={<PageHeader />}>
-        <Text color={colors.muted}>This person isn’t in the handbook anymore.</Text>
+      <Screen>
+        <Masthead back label="Family" />
+        <Text serif italic size={24} color={colors.muted}>
+          This person isn’t in the handbook anymore.
+        </Text>
       </Screen>
     );
   }
@@ -80,98 +84,56 @@ export default function PersonScreen() {
     !alerts?.length && !medicines?.length && !steps?.length && !notes?.length && !words?.length && !appointments?.length;
 
   return (
-    <Screen
-      header={
-        <PageHeader
-          background={c.soft}
-          right={
-            <PillButton
-              title="Edit"
-              onPress={() => router.push({ pathname: '/person/edit', params: { id: String(person.id) } })}
-            />
-          }>
-          <View style={styles.row}>
-            <Avatar name={person.name} color={person.color} size={64} solid />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text weight={800} size={28} style={{ letterSpacing: -0.5 }}>
-                {person.name}
-              </Text>
-              {describePerson(person) ? (
-                <Text weight={600} size={14} color={c.ink}>
-                  {describePerson(person)}
+    <Screen>
+      <Masthead
+        back
+        label={person.kind === 'child' ? 'Family · Child' : 'Family · In our care'}
+        color={c.strong}
+        right={
+          <PillButton title="Edit" onPress={() => router.push({ pathname: '/person/edit', params: { id: String(person.id) } })} />
+        }
+      />
+      <View style={{ gap: 10 }}>
+        <View style={[styles.swatch, { backgroundColor: c.strong }]} />
+        <Title size={64} deck={describePerson(person) || undefined}>
+          {person.name}
+        </Title>
+      </View>
+
+      {alerts && alerts.length > 0 && (
+        <View style={{ gap: 10 }}>
+          {alerts.map((alert) => (
+            <View key={alert.id} style={styles.alert}>
+              <Label color={colors.alertText}>Warning</Label>
+              {alert.title ? (
+                <Text serif size={26} color={colors.alertInk} style={{ lineHeight: 30 }}>
+                  {alert.title}
+                </Text>
+              ) : null}
+              {alert.details ? (
+                <Text size={15} color={colors.alertInk} style={{ lineHeight: 21 }}>
+                  {alert.details}
                 </Text>
               ) : null}
             </View>
-          </View>
-        </PageHeader>
-      }>
-      {alerts?.map((alert) => (
-        <View key={alert.id} style={styles.alert}>
-          <View style={{ marginTop: 2 }}>
-            <Icon name="alert" size={22} color={colors.alertText} strokeWidth={2.2} />
-          </View>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text weight={800} size={15} color={colors.alertInk}>
-              {alert.title}
-            </Text>
-            {alert.details ? (
-              <Text size={13} color="#6B2416" style={{ lineHeight: 19 }}>
-                {alert.details}
-              </Text>
-            ) : null}
-          </View>
+          ))}
         </View>
-      ))}
+      )}
 
       {daily.length > 0 && (
-        <Card>
+        <Card style={{ gap: 0 }}>
           <SectionTitle
-            title="Today's medicine"
-            right={
-              <Text weight={700} size={13} color={colors.muted}>
-                {`${daily.filter((m) => doses?.some((d) => d.medicine_id === m.id)).length} of ${daily.length} given`}
-              </Text>
-            }
+            title="Today’s medicine"
+            right={`${daily.filter((m) => doses?.some((d) => d.medicine_id === m.id)).length} of ${daily.length} given`}
           />
-          {daily.map((medicine) => (
-            <MedicineRow
-              key={medicine.id}
-              medicine={medicine}
-              dose={doses?.find((d) => d.medicine_id === medicine.id)}
-              color={c.strong}
-            />
+          {daily.map((medicine, index) => (
+            <Fragment key={medicine.id}>
+              {index > 0 && <Hairline />}
+              <MedicineRow medicine={medicine} dose={doses?.find((d) => d.medicine_id === medicine.id)} />
+            </Fragment>
           ))}
         </Card>
       )}
-
-      {appointments?.map((appointment) => {
-        const { weekday, date } = dayParts(appointment.day);
-        const detail = [appointment.time && formatTime(appointment.time), appointment.driver && `${appointment.driver} is driving`]
-          .filter(Boolean)
-          .join(' · ');
-        return (
-          <Card key={appointment.id} style={[styles.row, { gap: 14 }]}>
-            <View style={[styles.dateBlock, { backgroundColor: c.tint }]}>
-              <Text weight={800} size={11} color={c.strong} style={{ letterSpacing: 0.9 }}>
-                {weekday.toUpperCase()}
-              </Text>
-              <Text weight={800} size={20}>
-                {date}
-              </Text>
-            </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text weight={700} size={15}>
-                {appointment.title || 'Appointment'}
-              </Text>
-              {detail ? (
-                <Text size={13} color={colors.muted}>
-                  {detail}
-                </Text>
-              ) : null}
-            </View>
-          </Card>
-        );
-      })}
 
       {routines?.map((routine) => {
         const theirs = steps?.filter((step) => step.routine_id === routine.id) ?? [];
@@ -182,53 +144,102 @@ export default function PersonScreen() {
             routine={routine}
             steps={theirs}
             checks={checks?.filter((check) => theirs.some((step) => step.id === check.step_id)) ?? []}
-            color={c.strong}
           />
         );
       })}
 
-      {(notes?.length || asNeeded.length) ? (
-        <View style={styles.grid}>
-          {asNeeded.map((medicine) => (
-            <Card key={`m${medicine.id}`} style={styles.gridCard}>
-              <Label>As needed</Label>
-              <Text weight={600} size={14} style={{ lineHeight: 20 }}>
-                {[medicine.name, medicine.note].filter(Boolean).join('. ')}
-              </Text>
-            </Card>
-          ))}
-          {notes?.map((note) => (
-            <Card key={note.id} style={styles.gridCard}>
-              {note.label ? <Label>{note.label}</Label> : null}
-              <Text weight={600} size={14} style={{ lineHeight: 20 }}>
-                {note.text}
-              </Text>
-            </Card>
-          ))}
-        </View>
-      ) : null}
+      {appointments && appointments.length > 0 && (
+        <Card style={{ gap: 0 }}>
+          <SectionTitle title="Coming up" />
+          {appointments.map((appointment, index) => {
+            const { weekday, date } = dayParts(appointment.day);
+            const detail = [
+              relativeDay(appointment.day),
+              appointment.time && formatTime(appointment.time),
+              appointment.driver && `${appointment.driver} is driving`,
+            ]
+              .filter(Boolean)
+              .join(' · ');
+            return (
+              <Fragment key={appointment.id}>
+                {index > 0 && <Hairline />}
+                <View style={styles.visit}>
+                  <View style={styles.date}>
+                    <Label color={c.strong}>{weekday}</Label>
+                    <Text serif size={34} style={{ lineHeight: 38 }}>
+                      {date}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text weight={600} size={16}>
+                      {appointment.title || 'Appointment'}
+                    </Text>
+                    <Text size={14} color={colors.muted}>
+                      {detail}
+                    </Text>
+                  </View>
+                </View>
+              </Fragment>
+            );
+          })}
+        </Card>
+      )}
 
-      {words && words.length > 0 && (
+      {notes?.length || asNeeded.length ? (
         <Card>
-          <SectionTitle title={person.kind === 'child' ? 'Words they use' : 'Good to know'} />
-          <View style={styles.wrap}>
-            {words.map((word) => (
-              <View key={word.id} style={styles.word}>
-                <Text size={13}>
-                  <Text weight={700} size={13}>{`"${word.word}"`}</Text>
-                  {word.meaning ? ` = ${word.meaning}` : ''}
+          <SectionTitle title="Good to know" />
+          <View style={styles.grid}>
+            {asNeeded.map((medicine) => (
+              <View key={`m${medicine.id}`} style={styles.note}>
+                <Label>Medicine as needed</Label>
+                <Text size={15} style={styles.noteText}>
+                  <Text weight={700} size={15}>
+                    {medicine.name}
+                  </Text>
+                  {medicine.note ? `. ${medicine.note}` : ''}
+                </Text>
+              </View>
+            ))}
+            {notes?.map((note) => (
+              <View key={note.id} style={styles.note}>
+                {note.label ? <Label>{note.label}</Label> : null}
+                <Text size={15} style={styles.noteText}>
+                  {note.text}
                 </Text>
               </View>
             ))}
           </View>
         </Card>
+      ) : null}
+
+      {words && words.length > 0 && (
+        <Card style={{ gap: 0 }}>
+          <SectionTitle title={person.kind === 'child' ? 'Words they use' : 'Worth knowing'} />
+          {words.map((word, index) => (
+            <Fragment key={word.id}>
+              {index > 0 && <Hairline />}
+              <View style={styles.word}>
+                <Text serif italic size={22} style={{ lineHeight: 27 }}>
+                  {person.kind === 'child' ? `“${word.word}”` : word.word}
+                </Text>
+                {word.meaning ? (
+                  <Text size={15} color={colors.muted} style={{ lineHeight: 21 }}>
+                    {word.meaning}
+                  </Text>
+                ) : null}
+              </View>
+            </Fragment>
+          ))}
+        </Card>
       )}
 
       {isEmpty && (
         <Card>
-          <Text size={14} color={colors.muted} style={{ lineHeight: 20 }}>
-            Nothing here yet. Tap Edit to add allergies, medicines, a routine, and anything else a helper
-            should know about {person.name}.
+          <Text serif italic size={24} style={{ lineHeight: 29 }}>
+            Nothing here yet.
+          </Text>
+          <Text size={15} color={colors.muted} style={{ lineHeight: 21 }}>
+            Tap Edit to add allergies, medicine, a routine, and anything else a helper should know about {person.name}.
           </Text>
         </Card>
       )}
@@ -236,7 +247,7 @@ export default function PersonScreen() {
   );
 }
 
-function MedicineRow({ medicine, dose, color }: { medicine: Medicine; dose?: Dose; color: string }) {
+function MedicineRow({ medicine, dose }: { medicine: Medicine; dose?: Dose }) {
   const db = useSQLiteContext();
   const settings = useSettings();
 
@@ -255,73 +266,39 @@ function MedicineRow({ medicine, dose, color }: { medicine: Medicine; dose?: Dos
     ]);
 
   const minutes = minutesUntil(medicine.time);
-  let status = [formatTime(medicine.time), medicine.note].filter(Boolean).join(' · ');
-  let statusColor = colors.muted;
+  let detail = medicine.note;
+  let detailColor = colors.muted;
   if (dose) {
-    status = `${formatTime(medicine.time)} · given${dose.given_by ? ` by ${dose.given_by}` : ''} at ${clockTime(dose.given_at)}`;
+    detail = `Given${dose.given_by ? ` by ${dose.given_by}` : ''} at ${clockTime(dose.given_at)}`;
   } else if (minutes >= 0 && minutes <= 60) {
-    status = `${formatTime(medicine.time)} · due in ${minutes} min`;
-    statusColor = color;
+    detail = [`Due in ${minutes} min`, medicine.note].filter(Boolean).join(' · ');
+    detailColor = colors.accentText;
   } else if (minutes < 0) {
-    status = `${formatTime(medicine.time)} · not given yet`;
-    statusColor = color;
+    detail = [`Not given yet`, medicine.note].filter(Boolean).join(' · ');
+    detailColor = colors.accentText;
   }
-  const highlight = !dose && minutes <= 60;
 
   return (
-    <View style={styles.row}>
-      <Pressable
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: !!dose }}
-        accessibilityLabel={`${medicine.name} given`}
-        onPress={dose ? undo : give}
-        hitSlop={9}>
-        {dose ? (
-          <View style={[styles.check, { backgroundColor: colors.done }]}>
-            <Icon name="check" size={14} color="#FFFFFF" strokeWidth={3} />
-          </View>
-        ) : (
-          <View style={[styles.check, { borderWidth: 2, borderColor: highlight ? color : '#C9CCD4' }]} />
-        )}
-      </Pressable>
-      <View style={{ flex: 1 }}>
-        <Text weight={700} size={14}>
-          {medicine.name}
-        </Text>
-        <Text weight={highlight ? 700 : 500} size={12} color={statusColor}>
-          {status}
-        </Text>
-      </View>
-      {highlight && (
-        <Pressable
-          accessibilityRole="button"
-          onPress={give}
-          style={({ pressed }) => [styles.markGiven, { backgroundColor: color }, pressed && { opacity: 0.7 }]}>
-          <Text weight={700} size={13} color="#FFFFFF">
-            Mark given
-          </Text>
-        </Pressable>
-      )}
-    </View>
+    <CheckRow
+      time={medicine.time}
+      title={medicine.name}
+      detail={detail}
+      detailColor={detailColor}
+      checked={!!dose}
+      boxColor={!dose && minutes <= 60 ? colors.accent : undefined}
+      label={`${medicine.name}, ${formatTime(medicine.time)}, ${dose ? 'given' : 'not given'}`}
+      onPress={dose ? undo : give}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  alert: {
-    backgroundColor: colors.alert,
-    borderRadius: radius.card,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-start',
-  },
-  check: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  markGiven: { height: 36, paddingHorizontal: 14, borderRadius: 12, justifyContent: 'center' },
-  dateBlock: { width: 52, borderRadius: 12, paddingVertical: 6, alignItems: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  gridCard: { flexGrow: 1, flexBasis: '45%', padding: 14, gap: 6 },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  word: { backgroundColor: colors.chip, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  swatch: { width: 28, height: 4, borderRadius: 2 },
+  alert: { backgroundColor: colors.alert, borderRadius: radius.small, paddingVertical: 14, paddingHorizontal: 16, gap: 6 },
+  visit: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 10 },
+  date: { width: 52, alignItems: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 14 },
+  note: { flexGrow: 1, flexBasis: '42%', gap: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.track },
+  noteText: { lineHeight: 21 },
+  word: { gap: 2, paddingVertical: 10 },
 });

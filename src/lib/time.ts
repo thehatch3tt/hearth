@@ -79,3 +79,34 @@ export function greeting(now = new Date()) {
   const hour = now.getHours();
   return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 }
+
+const HOUR_WORDS = ['twelve', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven'];
+
+/** "14:00" → "at two o'clock", "18:45" → "at a quarter to seven", "17:10" → "at 5:10 pm" */
+export function spokenTime(time: string) {
+  const [h, m] = time.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return '';
+  const hour = HOUR_WORDS[h % 12];
+  if (m === 0) return h === 12 ? 'at noon' : h === 0 ? 'at midnight' : `at ${hour} o’clock`;
+  if (m === 15) return `at a quarter past ${hour}`;
+  if (m === 30) return `at half past ${hour}`;
+  if (m === 45) return `at a quarter to ${HOUR_WORDS[(h + 1) % 12]}`;
+  return `at ${formatTime(time)}`;
+}
+
+const ORDINALS = [
+  'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
+  'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth',
+  'nineteenth', 'twentieth', 'twenty-first', 'twenty-second', 'twenty-third', 'twenty-fourth', 'twenty-fifth',
+  'twenty-sixth', 'twenty-seventh', 'twenty-eighth', 'twenty-ninth', 'thirtieth', 'thirty-first',
+];
+
+/** "Wednesday" */
+export function weekdayName(date = new Date()) {
+  return date.toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+/** "the seventh of October" */
+export function spokenDate(date = new Date()) {
+  return `the ${ORDINALS[date.getDate() - 1]} of ${date.toLocaleDateString('en-US', { month: 'long' })}`;
+}

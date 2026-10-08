@@ -21,7 +21,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { Button, Text, styles as ui } from '@/components/ui';
+import { Button, tap, Text, styles as ui } from '@/components/ui';
 import { colors, radius } from '@/lib/theme';
 import { formatTime, longDay, todayKey, type Option } from '@/lib/time';
 
@@ -130,7 +130,7 @@ export function BottomSheet({ title, onClose, children }: { title: string; onClo
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
           <View style={styles.grabber} />
           <View style={styles.header}>
-            <Text weight={900} size={18}>
+            <Text serif size={28} numberOfLines={1} style={{ flex: 1, lineHeight: 33 }}>
               {title}
             </Text>
             <Pressable accessibilityRole="button" onPress={onClose} hitSlop={10}>
@@ -152,9 +152,12 @@ export function Chip({ label, selected, onPress, style }: { label: string; selec
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      onPress={onPress}
+      onPress={() => {
+        tap();
+        onPress();
+      }}
       style={({ pressed }) => [styles.chip, selected && styles.chipSelected, pressed && { opacity: 0.7 }, style]}>
-      <Text weight={selected ? 800 : 700} size={15} color={selected ? '#FFFFFF' : colors.ink}>
+      <Text weight={selected ? 700 : 600} size={15} color={selected ? '#FFFFFF' : colors.ink}>
         {label}
       </Text>
     </Pressable>
@@ -200,7 +203,7 @@ function ChoiceSheet({
             disabled={!typed.trim()}
             onPress={() => onChoose(typed.trim())}
             style={[styles.use, !typed.trim() && { opacity: 0.4 }]}>
-            <Text weight={800} size={15} color="#FFFFFF">
+            <Text weight={700} size={15} color="#FFFFFF">
               Use
             </Text>
           </Pressable>
@@ -222,7 +225,7 @@ function TimeSheet({ value, clearLabel, onChoose }: { value: string; clearLabel?
 
   return (
     <View style={{ gap: 14 }}>
-      <Text weight={900} size={30} style={{ textAlign: 'center' }}>
+      <Text serif size={48} style={{ textAlign: 'center', lineHeight: 54 }}>
         {formatTime(time)}
       </Text>
       <View style={styles.wrap}>
@@ -275,7 +278,7 @@ function DaySheet({ value, onChoose }: { value: string; onChoose: (value: string
         <Pressable accessibilityRole="button" accessibilityLabel="Previous month" onPress={() => step(-1)} hitSlop={8} style={styles.arrow}>
           <Icon name="back" size={20} />
         </Pressable>
-        <Text weight={900} size={17}>
+        <Text serif size={24} style={{ lineHeight: 29 }}>
           {first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => step(1)} hitSlop={8} style={styles.arrow}>
@@ -285,7 +288,7 @@ function DaySheet({ value, onChoose }: { value: string; onChoose: (value: string
       <View style={styles.calendar}>
         {WEEKDAYS.map((name, i) => (
           <View key={`w${i}`} style={styles.cell}>
-            <Text weight={800} size={12} color={colors.muted}>
+            <Text weight={700} size={11} color={colors.muted}>
               {name}
             </Text>
           </View>
@@ -304,7 +307,7 @@ function DaySheet({ value, onChoose }: { value: string; onChoose: (value: string
               onPress={() => onChoose(key)}
               style={styles.cell}>
               <View style={[styles.day, key === today && styles.today, selected && styles.chipSelected]}>
-                <Text weight={selected ? 900 : 700} size={15} color={selected ? '#FFFFFF' : past ? colors.faint : colors.ink}>
+                <Text weight={selected ? 700 : 500} size={16} color={selected ? '#FFFFFF' : past ? colors.faint : colors.ink}>
                   {day}
                 </Text>
               </View>
@@ -318,11 +321,11 @@ function DaySheet({ value, onChoose }: { value: string; onChoose: (value: string
 
 const styles = StyleSheet.create({
   box: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(20, 35, 27, 0.4)' },
+  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(20, 20, 20, 0.36)' },
   sheetWrap: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     maxHeight: '85%',
-    backgroundColor: colors.card,
+    backgroundColor: colors.background,
     borderTopLeftRadius: radius.big,
     borderTopRightRadius: radius.big,
     paddingHorizontal: 18,
@@ -335,11 +338,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 14,
     borderRadius: 22,
-    backgroundColor: colors.chip,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipSelected: { backgroundColor: colors.accent },
+  chipSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
   // Six hours to a row.
   hour: { flexBasis: '14%', flexGrow: 1, paddingHorizontal: 0 },
   custom: { flexDirection: 'row', gap: 8 },

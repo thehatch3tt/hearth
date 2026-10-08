@@ -1,10 +1,11 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
 import { Alert, Pressable, Share, StyleSheet, TextInput, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { Icon } from '@/components/Icon';
 import { Chip } from '@/components/Select';
-import { Button, Card, Field, Label, PageHeader, Screen, Text, styles as ui } from '@/components/ui';
+import { Button, Card, Field, Hairline, Masthead, Screen, SectionTitle, Segmented, Text, Title, styles as ui } from '@/components/ui';
 import { type Person, type SitterLink, useQuery, useSettings } from '@/lib/db';
 import { sharingIsSetUp } from '@/lib/firebase';
 import { buildSnapshot, createLink, expiryFor, stopLink } from '@/lib/share';
@@ -83,27 +84,25 @@ export default function ShareScreen() {
   }
 
   return (
-    <Screen
-      header={
-        <PageHeader>
-          <Text weight={900} size={28} style={{ letterSpacing: -0.3 }}>
-            Link for tonight
-          </Text>
-        </PageHeader>
-      }>
+    <Screen tabBar>
+      <Masthead label="For a sitter · no app needed" />
+      <Title size={64} deck="Choose the pages, add a note, and send.">
+        Link for tonight
+      </Title>
+
       {!sharingIsSetUp && (
-        <Card style={{ backgroundColor: colors.alert, gap: 4 }}>
-          <Text weight={800} size={15} color={colors.alertText}>
-            Sharing isn’t set up yet
+        <View style={styles.notice}>
+          <Text weight={700} size={11} color={colors.alertText} style={ui.label}>
+            Not set up yet
           </Text>
-          <Text weight={600} size={14} color={colors.alertInk} style={{ lineHeight: 20 }}>
-            The Firebase project and the link page still need to be connected. Until then you can look around,
-            but links can’t be sent.
+          <Text size={15} color={colors.alertInk} style={{ lineHeight: 21 }}>
+            The Firebase project and the link page still need to be connected. Until then you can look around, but links can’t
+            be sent.
           </Text>
-        </Card>
+        </View>
       )}
 
-      <Card style={{ gap: 16 }}>
+      <Card style={{ gap: 20, paddingTop: 16 }}>
         <Field label="Who’s it for?">
           <TextInput
             value={to}
@@ -137,81 +136,71 @@ export default function ShareScreen() {
         </Field>
 
         <Field label="Link stops working">
-          <View style={styles.segments}>
-            {EXPIRY.map((option) => {
-              const selected = option.value === expiry;
-              return (
-                <Pressable
-                  key={option.value}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  onPress={() => setExpiry(option.value)}
-                  style={[styles.segment, selected && styles.segmentSelected]}>
-                  <Text weight={selected ? 800 : 600} size={13} color={selected ? colors.ink : colors.muted}>
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <Segmented value={expiry} onChange={setExpiry} options={EXPIRY} />
         </Field>
       </Card>
 
-      <Button
-        title={sending ? 'Making the link…' : `Send ${to.trim() ? `${to.trim()} the` : 'the'} link`}
-        icon="share"
-        disabled={!sharingIsSetUp || sending || nothingChosen}
-        onPress={send}
-      />
-      <Text weight={600} size={13} color={colors.muted} style={styles.footnote}>
-        They don’t need the app or an account. The pages are locked with a key that travels only in the link,
-        and the copy is deleted when the link stops working.
-      </Text>
+      <View style={{ gap: 12 }}>
+        <Button
+          title={sending ? 'Making the link…' : `Send ${to.trim() ? `${to.trim()} the` : 'the'} link`}
+          icon="share"
+          disabled={!sharingIsSetUp || sending || nothingChosen}
+          onPress={send}
+        />
+        <Text size={13} color={colors.muted} style={styles.footnote}>
+          They don’t need the app or an account. The pages are locked with a key that travels only in the link, and the copy is
+          deleted when the link stops working.
+        </Text>
+      </View>
 
       {active.length > 0 && (
-        <View style={{ gap: 8, marginTop: 8 }}>
-          <Label>Links that are working now</Label>
-          <Card style={{ paddingVertical: 4, gap: 0 }}>
+        <Animated.View entering={FadeIn} layout={LinearTransition.duration(240)}>
+          <Card style={{ gap: 0 }}>
+            <SectionTitle title="Links working now" />
             {active.map((link, i) => (
-              <View key={link.id} style={[styles.link, i > 0 && styles.divider]}>
-                <View style={{ flex: 1 }}>
-                  <Text weight={800} size={15}>
-                    {link.name || 'Sitter link'}
-                  </Text>
-                  <Text weight={600} size={13} color={colors.muted}>
-                    Ends {when(link.expires_at)}
-                  </Text>
+              <Animated.View key={link.id} exiting={FadeOut.duration(140)} layout={LinearTransition.duration(240)}>
+                {i > 0 && <Hairline />}
+                <View style={styles.link}>
+                  <View style={{ flex: 1, gap: 1 }}>
+                    <Text serif size={24} numberOfLines={1} style={{ lineHeight: 29 }}>
+                      {link.name || 'Sitter link'}
+                    </Text>
+                    <Text size={14} color={colors.muted}>
+                      Ends {when(link.expires_at)}
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Send again"
+                    onPress={() => Share.share({ message: link.url })}
+                    hitSlop={6}
+                    style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.6 }]}>
+                    <Icon name="share" size={20} color={colors.accentText} />
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => confirmStop(link)}
+                    hitSlop={6}
+                    style={({ pressed }) => [styles.stop, pressed && { opacity: 0.6 }]}>
+                    <Text weight={700} size={14} color={colors.danger}>
+                      Stop
+                    </Text>
+                  </Pressable>
                 </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Send again"
-                  onPress={() => Share.share({ message: link.url })}
-                  hitSlop={6}
-                  style={styles.iconButton}>
-                  <Icon name="share" size={20} color={colors.accentText} />
-                </Pressable>
-                <Pressable accessibilityRole="button" onPress={() => confirmStop(link)} hitSlop={6} style={styles.stop}>
-                  <Text weight={800} size={14} color={colors.danger}>
-                    Stop
-                  </Text>
-                </Pressable>
-              </View>
+              </Animated.View>
             ))}
           </Card>
-        </View>
+        </Animated.View>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  notice: { backgroundColor: colors.alert, borderRadius: radius.small, paddingVertical: 14, paddingHorizontal: 16, gap: 6 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  segments: { flexDirection: 'row', backgroundColor: colors.background, borderRadius: radius.small, padding: 3 },
-  segment: { flex: 1, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  segmentSelected: { backgroundColor: colors.card, boxShadow: '0 1px 3px rgba(0,0,0,0.12)' },
   footnote: { textAlign: 'center', lineHeight: 19, paddingHorizontal: 8 },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 60 },
-  divider: { borderTopWidth: 1, borderTopColor: colors.chip },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 64, paddingVertical: 8 },
   iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   stop: { height: 44, paddingHorizontal: 8, justifyContent: 'center' },
 });
