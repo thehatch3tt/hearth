@@ -1,421 +1,98 @@
-/** The small pieces every screen is built from, in the Editorial look (lib/theme.ts). */
-import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  type PressableProps,
-  ScrollView,
-  StyleSheet,
-  Text as RNText,
-  type TextProps,
-  TextInput,
-  type TextInputProps,
-  View,
-  type ViewStyle,
-  type StyleProp,
-} from 'react-native';
+import { type ReactNode } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text as RNText, View, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GlassButton, GlassIconButton } from '@/components/Glass';
 import { Icon, type IconName } from '@/components/Icon';
-import { fonts, radius, serif, TAB_BAR_SPACE, useTheme, type Weight } from '@/lib/theme';
-import { formatTime } from '@/lib/time';
+import { colors, fonts, type Weight } from '@/lib/theme';
 
-/** A light tap under the finger when something is ticked off or chosen. */
-export function tap() {
-  if (Platform.OS === 'android') Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => {});
-  else if (Platform.OS === 'ios') Haptics.selectionAsync().catch(() => {});
+/** Outfit text: light by default, as the look wants. */
+export function Text({ weight = 300, size = 16, color = colors.ink, style, ...props }: TextProps & { weight?: Weight; size?: number; color?: string }) {
+  return <RNText {...props} style={[{ fontFamily: fonts[weight], fontSize: size, color, lineHeight: Math.round(size * 1.4) }, style]} />;
 }
 
-/**
- * Text in Instrument Sans. `serif` sets it in Instrument Serif (headlines, names, times), which has
- * one weight, so `weight` is ignored for it; `italic` picks its italic.
- */
-export function Text({
-  weight = 500,
-  size = 15,
-  color,
-  serif: useSerif = false,
-  italic = false,
-  style,
-  ...props
-}: TextProps & { weight?: Weight; size?: number; color?: string; serif?: boolean; italic?: boolean }) {
-  const { colors } = useTheme();
-  const family = useSerif ? (italic ? serif.italic : serif.regular) : fonts[weight];
-  return <RNText {...props} style={[{ fontFamily: family, fontSize: size, color: color ?? colors.ink }, style]} />;
-}
-
-/** A small-caps label, widely spaced like a magazine's ("COMFORT", "READ THIS TO THE OPERATOR"). */
-export function Label({ children, color, numberOfLines }: { children: ReactNode; color?: string; numberOfLines?: number }) {
-  const { colors } = useTheme();
+/** A small uppercase label over a group. */
+export function Eyebrow({ children, color = colors.faint, style }: { children: ReactNode; color?: string; style?: StyleProp<TextStyle> }) {
   return (
-    <Text weight={700} size={11} color={color ?? colors.muted} numberOfLines={numberOfLines} style={styles.label}>
+    <Text weight={500} size={12} color={color} style={[{ letterSpacing: 1.2, textTransform: 'uppercase', paddingHorizontal: 4 }, style]}>
       {children}
     </Text>
   );
 }
 
 /**
- * The strip at the top of every page, like a magazine's running head: a small-caps line over a
- * black rule, with a glass back button on the left of a sub-page and a button on the right.
+ * A page: scrolls (with no scroll bar), clears the status bar, and leaves room at the foot for the tab
+ * bar (`tabs`) or a bottom bar of buttons (`footer`, kept in view).
  */
-export function Masthead({
-  label,
-  back = false,
-  right,
-  color,
-  rule,
-}: {
-  label: string;
-  back?: boolean;
-  right?: ReactNode;
-  color?: string;
-  rule?: string;
-}) {
-  const { colors } = useTheme();
+export function Screen({ children, tabs, footer, gap = 16 }: { children: ReactNode; tabs?: boolean; footer?: ReactNode; gap?: number }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.masthead, { borderBottomColor: rule ?? colors.ink }]}>
-      {back && <GlassIconButton icon="back" label="Back" onPress={() => router.back()} />}
-      <Text weight={700} size={11} color={color} numberOfLines={1} style={[styles.label, { flex: 1 }]}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 18, paddingBottom: tabs ? 110 + insets.bottom : footer ? 24 : insets.bottom + 32, gap }}>
+        {children}
+      </ScrollView>
+      {footer && <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>{footer}</View>}
+    </View>
+  );
+}
+
+export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  return <View style={[styles.card, style]}>{children}</View>;
+}
+
+/** A round icon tile, as used beside rows. */
+export function IconTile({ name, size = 34 }: { name: IconName; size?: number }) {
+  return (
+    <View style={[styles.tile, { width: size, height: size, borderRadius: size * 0.32 }]}>
+      <Icon name={name} size={size * 0.53} />
+    </View>
+  );
+}
+
+export function Button({ label, onPress, kind = 'primary', icon, style }: { label: string; onPress: () => void; kind?: 'primary' | 'outline' | 'quiet'; icon?: IconName; style?: StyleProp<ViewStyle> }) {
+  const color = kind === 'primary' ? colors.onAccent : kind === 'outline' ? colors.ink : colors.muted;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.button, kind === 'primary' && { backgroundColor: colors.accent }, kind === 'outline' && styles.outline, kind === 'quiet' && { height: 44 }, pressed && { opacity: 0.7 }, style]}>
+      {icon && <Icon name={icon} size={18} color={color} strokeWidth={1.9} />}
+      <Text weight={kind === 'primary' ? 500 : 400} size={kind === 'quiet' ? 16 : 17} color={color}>
         {label}
       </Text>
-      {right}
-    </View>
+    </Pressable>
   );
 }
 
-/**
- * A page's title in serif, on one line: a long one shrinks to fit rather than wrapping or running
- * off the edge. `deck` is an italic line under it ("the seventh of October", "6 years old").
- */
-export function Title({
-  children,
-  deck,
-  size = 56,
-  color,
-  deckColor,
-}: {
-  children: ReactNode;
-  deck?: ReactNode;
-  size?: number;
-  color?: string;
-  deckColor?: string;
-}) {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.title}>
-      <Text
-        serif
-        size={size}
-        color={color}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.45}
-        style={{ lineHeight: Math.round(size * 1.1), letterSpacing: -size / 60 }}>
-        {children}
-      </Text>
-      {deck ? (
-        <Text serif italic size={22} color={deckColor ?? colors.muted} numberOfLines={2} style={styles.deck}>
-          {deck}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-/**
- * A section of a page: no box, just a black rule across the top, like a magazine. `boxed` is a
- * white rounded card instead, for things that must stand apart (the emergency card's address).
- */
-export function Card({ children, style, boxed }: { children: ReactNode; style?: StyleProp<ViewStyle>; boxed?: boolean }) {
-  const { colors } = useTheme();
-  return (
-    <View style={[boxed ? [styles.box, { backgroundColor: colors.card }] : [styles.card, { borderTopColor: colors.ink }], style]}>
-      {children}
-    </View>
-  );
-}
-
-/** A scrolling page on the paper background, with room for the phone's notch and home bar. */
-export function Screen({
-  children,
-  header,
-  background,
-  tabBar = false,
-}: {
-  children: ReactNode;
-  /** Drawn edge to edge above the content, scrolling with it. */
-  header?: ReactNode;
-  background?: string;
-  /** A tab page: leaves room so the end can scroll clear of the floating menu bar. */
-  tabBar?: boolean;
-}) {
-  const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
-  return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: background ?? colors.background }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 32 + (tabBar ? TAB_BAR_SPACE : 0) }}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="interactive"
-      automaticallyAdjustKeyboardInsets>
-      {header ?? <View style={{ height: insets.top + 8 }} />}
-      <View style={styles.screenBody}>{children}</View>
-    </ScrollView>
-  );
-}
-
-/** A solid 44 px circle with an icon (the emergency card's Close; elsewhere it's a glass button). */
-export function RoundButton({
-  icon,
-  label,
-  onPress,
-  background,
-  color,
-}: {
-  icon: IconName;
-  label: string;
-  onPress: () => void;
-  background?: string;
-  color?: string;
-}) {
-  const { colors } = useTheme();
+/** An on/off switch drawn in the look (the system one is green). */
+export function Toggle({ value, onChange, label }: { value: boolean; onChange: (value: boolean) => void; label: string }) {
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
       accessibilityLabel={label}
-      onPress={onPress}
-      hitSlop={4}
-      style={({ pressed }) => [styles.round, { backgroundColor: background ?? colors.card }, pressed && styles.pressed]}>
-      <Icon name={icon} color={color ?? colors.ink} strokeWidth={2.2} />
+      onPress={() => onChange(!value)}
+      hitSlop={6}
+      style={[styles.toggle, { backgroundColor: value ? colors.accent : colors.selected, alignItems: value ? 'flex-end' : 'flex-start' }]}>
+      <View style={[styles.knob, { backgroundColor: value ? colors.background : colors.muted }]} />
     </Pressable>
   );
 }
 
-/** A glass pill with a word on it ("Edit", "Done"). */
-export function PillButton({ title, onPress }: { title: string; onPress: () => void }) {
-  return <GlassButton title={title} onPress={onPress} height={40} />;
-}
-
-/** Main actions in the accent color; `quiet` is an outlined button for lesser ones. */
-export function Button({
-  title,
-  icon,
-  quiet,
-  color: given,
-  style,
-  ...props
-}: PressableProps & {
-  title: string;
-  icon?: IconName;
-  quiet?: boolean;
-  color?: string;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const { colors } = useTheme();
-  const color = given ?? colors.accent;
-  const textColor = quiet ? color : colors.onAccent;
+/** Two or three choices side by side, one picked. */
+export function Segmented<T extends string | number>({ options, value, onChange, label }: { options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; label: string }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      {...props}
-      style={({ pressed }) => [
-        styles.button,
-        quiet ? { borderWidth: 1, borderColor: color } : { backgroundColor: color },
-        pressed && styles.pressed,
-        props.disabled && styles.disabled,
-        style,
-      ]}>
-      {icon && <Icon name={icon} size={18} color={textColor} strokeWidth={2.2} />}
-      <Text weight={700} size={15} color={textColor} numberOfLines={1}>
-        {title}
-      </Text>
-    </Pressable>
-  );
-}
-
-/** A text link in the accent color ("+ Add"). */
-export function LinkButton({ title, onPress, color }: { title: string; onPress: () => void; color?: string }) {
-  const { colors } = useTheme();
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={10} style={styles.link}>
-      {({ pressed }) => (
-        <Text weight={700} size={14} color={color ?? colors.accentText} style={pressed && styles.pressed}>
-          {title}
-        </Text>
-      )}
-    </Pressable>
-  );
-}
-
-/** A person's initial in a circle of their color. */
-export function Avatar({ name, color, size = 46, solid }: { name: string; color: string; size?: number; solid?: boolean }) {
-  const { colors, person } = useTheme();
-  const c = person(color);
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: solid ? c.strong : c.soft,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-      <Text serif size={size * 0.5} color={solid ? colors.background : c.strong} style={{ lineHeight: size * 0.6 }}>
-        {name.trim().charAt(0).toUpperCase() || '?'}
-      </Text>
-    </View>
-  );
-}
-
-/** A section's small-caps heading, with a note or link on the right ("2 of 3 given"). */
-export function SectionTitle({ title, right, color }: { title: string; right?: ReactNode; color?: string }) {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.row, { justifyContent: 'space-between', alignItems: 'baseline' }]}>
-      <Text weight={700} size={11} color={color} numberOfLines={1} style={[styles.label, { flexShrink: 1 }]}>
-        {title}
-      </Text>
-      {typeof right === 'string' ? (
-        <Text weight={600} size={12} color={colors.muted}>
-          {right}
-        </Text>
-      ) : (
-        right
-      )}
-    </View>
-  );
-}
-
-/** A thin rule between rows. */
-export function Hairline() {
-  const { colors } = useTheme();
-  return <View style={[styles.hairline, { backgroundColor: colors.track }]} />;
-}
-
-/** The square box beside something to tick off; inked in once it's done. */
-export function TickBox({ checked, color }: { checked: boolean; color?: string }) {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.tick, { borderColor: checked ? colors.ink : (color ?? colors.ink) }, checked && { backgroundColor: colors.ink }]}>
-      {checked && <Icon name="check" size={13} color={colors.background} strokeWidth={3} />}
-    </View>
-  );
-}
-
-/**
- * One thing to tick off (a medicine, a routine step): an italic time, what it is, a line under it,
- * an optional small-caps note on the right, and the box. The whole row is the button.
- */
-export function CheckRow({
-  time,
-  title,
-  note,
-  detail,
-  detailColor,
-  aside,
-  checked,
-  boxColor,
-  label,
-  onPress,
-}: {
-  /** "HH:MM", or empty for no set time. */
-  time: string;
-  title: string;
-  /** Shown after the title, lighter ("likes bubbles"). */
-  note?: string;
-  /** A line under the title ("Given by Sam at 8:02 am"). */
-  detail?: string;
-  detailColor?: string;
-  /** Small caps on the right (whose it is, on Today). */
-  aside?: string;
-  checked: boolean;
-  /** The box's edge, to show it's due. */
-  boxColor?: string;
-  label: string;
-  onPress: () => void;
-}) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked }}
-      accessibilityLabel={label}
-      onPress={() => {
-        tap();
-        onPress();
-      }}
-      style={({ pressed }) => [styles.checkRow, pressed && styles.pressed]}>
-      <Text serif italic size={20} color={colors.muted} numberOfLines={1} style={styles.time}>
-        {time ? formatTime(time).slice(0, -3) : '—'}
-        {time ? (
-          <Text serif italic size={14} color={colors.muted}>
-            {formatTime(time).slice(-3)}
-          </Text>
-        ) : null}
-      </Text>
-      <View style={{ flex: 1, gap: 1 }}>
-        <Text weight={600} size={16} color={checked ? colors.muted : colors.ink} style={checked && styles.struck}>
-          {title}
-          {note ? (
-            <Text weight={400} size={16} color={colors.muted}>
-              {` — ${note}`}
-            </Text>
-          ) : null}
-        </Text>
-        {detail ? (
-          <Text weight={600} size={13} color={detailColor ?? colors.muted}>
-            {detail}
-          </Text>
-        ) : null}
-      </View>
-      {aside ? (
-        <Text weight={700} size={11} color={colors.muted} numberOfLines={1} style={[styles.label, styles.aside]}>
-          {aside}
-        </Text>
-      ) : null}
-      <TickBox checked={checked} color={boxColor} />
-    </Pressable>
-  );
-}
-
-/** Two or three choices side by side, one picked ("A child" / "An adult I care for"). */
-export function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  const { colors, scheme } = useTheme();
-  const picked = { backgroundColor: scheme === 'dark' ? colors.border : colors.card, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.16)' };
-  return (
-    <View style={[styles.segments, { backgroundColor: colors.chip }]}>
+    <View accessibilityRole="tablist" accessibilityLabel={label} style={styles.segmented}>
       {options.map((option) => {
-        const selected = option.value === value;
+        const on = option.value === value;
         return (
-          <Pressable
-            key={option.value}
-            accessibilityRole="radio"
-            accessibilityState={{ selected }}
-            onPress={() => {
-              if (selected) return;
-              tap();
-              onChange(option.value);
-            }}
-            style={[styles.segment, selected && picked]}>
-            <Text
-              weight={selected ? 700 : 600}
-              size={14}
-              color={selected ? colors.ink : colors.muted}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}>
+          <Pressable key={String(option.value)} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => onChange(option.value)} style={[styles.segment, on && { backgroundColor: colors.selected }]}>
+            <Text weight={on ? 500 : 400} size={15} color={on ? colors.ink : colors.muted}>
               {option.label}
             </Text>
           </Pressable>
@@ -425,119 +102,66 @@ export function Segmented<T extends string>({
   );
 }
 
-/**
- * A text box that saves when you leave it (or press return on a single line). It keeps its own
- * text while you type, so give it a `key` that changes if the saved row changes underneath it.
- */
-export function SavedInput({
-  value,
-  onSave,
-  style,
-  ...props
-}: Omit<TextInputProps, 'value' | 'onChangeText'> & { value: string; onSave: (text: string) => void }) {
-  const { colors } = useTheme();
-  const input = useInputStyle();
-  const [text, setText] = useState(value);
-  // The text last handed to onSave, so the same text isn't saved twice.
-  const handled = useRef(value);
-  const save = () => {
-    if (text !== handled.current) {
-      handled.current = text;
-      onSave(text);
-    }
-  };
-  // Also saves if the screen closes while you're still typing (a swipe back doesn't always blur).
-  const latest = useRef({ text, onSave });
-  useEffect(() => {
-    latest.current = { text, onSave };
-  });
-  useEffect(
-    () => () => {
-      const last = latest.current;
-      if (last.text !== handled.current) last.onSave(last.text);
-    },
-    [],
-  );
+/** A round back button. */
+export function BackButton({ onPress }: { onPress?: () => void }) {
   return (
-    <TextInput
-      placeholderTextColor={colors.faint}
-      {...props}
-      value={text}
-      onChangeText={setText}
-      onBlur={save}
-      onSubmitEditing={props.multiline ? undefined : save}
-      style={[input, props.multiline && styles.multiline, style]}
-    />
+    <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} onPress={onPress ?? (() => (router.canGoBack() ? router.back() : router.replace('/')))} style={styles.round}>
+      <Icon name="back" size={18} color={colors.ink} strokeWidth={2} />
+    </Pressable>
   );
 }
 
-/** A small-caps label over a text box. */
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  const { colors } = useTheme();
+/** Step dots for the welcome. */
+export function Dots({ step, total }: { step: number; total: number }) {
   return (
-    <View style={{ gap: 6 }}>
-      <Label>{label}</Label>
-      {children}
-      {hint ? (
-        <Text size={13} color={colors.muted} style={{ lineHeight: 18 }}>
-          {hint}
-        </Text>
-      ) : null}
+    <View accessibilityLabel={`Step ${step} of ${total}`} style={{ flexDirection: 'row', gap: 6 }}>
+      {Array.from({ length: total }, (_, i) => (
+        <View key={i} style={{ width: i + 1 === step ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i + 1 === step ? colors.accent : colors.outline }} />
+      ))}
     </View>
   );
 }
 
-/** The look of a text box (or a pick list that looks like one), in the current colors. */
-export function useInputStyle() {
-  const { colors } = useTheme();
-  return [styles.input, { borderColor: colors.border, backgroundColor: colors.card, color: colors.ink }];
+/** A tappable row inside a card: icon, words, and an arrow. */
+export function Row({ icon, title, note, right, onPress, first }: { icon?: IconName; title: string; note?: string; right?: ReactNode; onPress?: () => void; first?: boolean }) {
+  const body = (
+    <>
+      {icon && <IconTile name={icon} />}
+      <View style={{ flex: 1, gap: 1 }}>
+        <Text size={16} weight={400}>
+          {title}
+        </Text>
+        {note ? (
+          <Text size={13} color={colors.faint}>
+            {note}
+          </Text>
+        ) : null}
+      </View>
+      {right}
+      {onPress && <Icon name="chevron" size={16} color="#5E5A6B" strokeWidth={2} />}
+    </>
+  );
+  const style = [styles.row, !first && styles.rowLine];
+  return onPress ? (
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [style, pressed && { backgroundColor: colors.raised }]}>
+      {body}
+    </Pressable>
+  ) : (
+    <View style={style}>{body}</View>
+  );
 }
 
-export const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  label: { letterSpacing: 2, textTransform: 'uppercase' },
-  masthead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minHeight: 48,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-  },
-  title: { gap: 0, marginTop: -4 },
-  deck: { lineHeight: 27, paddingRight: 4 },
-  card: { borderTopWidth: 1, paddingTop: 10, gap: 10 },
-  box: { borderRadius: radius.card, padding: 18, gap: 12 },
-  screenBody: { paddingHorizontal: 20, gap: 22 },
-  round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  button: {
-    height: 50,
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  link: { alignSelf: 'flex-start', paddingVertical: 6 },
-  hairline: { height: 1 },
-  tick: { width: 22, height: 22, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingVertical: 6 },
-  time: { width: 64 },
-  aside: { maxWidth: 96 },
-  struck: { textDecorationLine: 'line-through' },
-  segments: { flexDirection: 'row', borderRadius: 12, padding: 3 },
-  segment: { flex: 1, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  input: {
-    minHeight: 46,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontFamily: fonts[500],
-    fontSize: 16,
-  },
-  multiline: { minHeight: 76, textAlignVertical: 'top' },
-  pressed: { opacity: 0.6 },
-  disabled: { opacity: 0.4 },
+const styles = StyleSheet.create({
+  card: { backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden' },
+  tile: { backgroundColor: colors.raised, alignItems: 'center', justifyContent: 'center' },
+  button: { height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18 },
+  outline: { borderWidth: 1, borderColor: colors.outline },
+  toggle: { width: 51, height: 31, borderRadius: 16, padding: 2, justifyContent: 'center' },
+  knob: { width: 27, height: 27, borderRadius: 14 },
+  segmented: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: 14, padding: 4, gap: 4 },
+  segment: { flex: 1, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  round: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  rowLine: { borderTopWidth: 1, borderTopColor: colors.line },
+  footer: { paddingHorizontal: 18, paddingTop: 12, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: 'row', gap: 10 },
 });

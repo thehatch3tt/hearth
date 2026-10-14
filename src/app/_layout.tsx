@@ -1,65 +1,38 @@
-import {
-  InstrumentSans_400Regular,
-  InstrumentSans_500Medium,
-  InstrumentSans_600SemiBold,
-  InstrumentSans_700Bold,
-  useFonts,
-} from '@expo-google-fonts/instrument-sans';
-import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
+import { Outfit_200ExtraLight, Outfit_300Light, Outfit_400Regular, Outfit_500Medium, useFonts } from '@expo-google-fonts/outfit';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
-import { ThemeProvider } from '@/components/ThemeProvider';
-import { DATABASE_NAME, setUpDatabase } from '@/lib/db';
-import { emergency, useTheme } from '@/lib/theme';
+import { LockGate } from '@/components/LockGate';
+import { colors } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 /**
- * The tabs (Today, Family, Our home, Share) sit at the bottom of the stack; a person's page, the
- * whole day, editing, settings and the emergency card slide over them. Every screen draws its own
- * header. The splash screen stays up until the fonts and the light/dark choice have loaded.
+ * Left in Love: the welcome (first time only), the tabs, and the screens that slide over them
+ * (writing a page or a letter, and the preview of what your family will see), behind the lock if it's on.
  */
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    InstrumentSans_400Regular,
-    InstrumentSans_500Medium,
-    InstrumentSans_600SemiBold,
-    InstrumentSans_700Bold,
-    InstrumentSerif_400Regular,
-    InstrumentSerif_400Regular_Italic,
-  });
+  const [fontsLoaded, fontError] = useFonts({ Outfit_200ExtraLight, Outfit_300Light, Outfit_400Regular, Outfit_500Medium });
+  const ready = fontsLoaded || fontError;
 
-  if (!fontsLoaded && !fontError) return null;
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
-    <SQLiteProvider databaseName={DATABASE_NAME} onInit={setUpDatabase}>
-      <ThemeProvider>
-        <Screens />
-      </ThemeProvider>
-    </SQLiteProvider>
-  );
-}
-
-function Screens() {
-  const { colors, scheme } = useTheme();
-  return (
-    <>
-      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+    <LockGate>
+      <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="person/[id]" />
-        <Stack.Screen name="person/edit" />
-        <Stack.Screen name="day" />
-        <Stack.Screen
-          name="emergency"
-          options={{ animation: 'slide_from_bottom', contentStyle: { backgroundColor: emergency.background } }}
-        />
-        <Stack.Screen name="emergency-edit" />
-        <Stack.Screen name="settings" />
+        <Stack.Screen name="welcome" options={{ animation: 'fade', gestureEnabled: false }} />
+        <Stack.Screen name="page/[id]" />
+        <Stack.Screen name="letter/[id]" />
+        <Stack.Screen name="preview" />
       </Stack>
-    </>
+    </LockGate>
   );
 }

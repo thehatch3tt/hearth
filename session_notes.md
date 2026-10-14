@@ -1,3 +1,20 @@
+# Session notes: Left in Love (this folder, formerly Hearth)
+
+Hearth was replaced in this folder by **Left in Love**, an app for writing down what your family will need when you die (a handbook in five sections, letters that open later, voice notes, grief help for the family). Everything stays on the phone (`lib/store.ts`, one JSON record in the expo-sqlite key-value store). Look: "Evening", dark plum-charcoal with a champagne accent, Outfit (`lib/theme.ts`). Mockups: claude.ai/artifact/6s3NrRVxUBF7AWWLLAMBob (could not be opened from Claude Code on 2026-10-14). Nothing of Left in Love is committed yet.
+
+## Added 2026-10-14
+- **Fixed** a line break inside a string in `app/letter/[id].tsx` that stopped the app compiling.
+- **Photos on pages** (`components/Photos.tsx`): camera or library (up to 10 at once), a full-size view with a caption, delete. They are saved in `photos/` by id, included in backups, and printed in the PDF with captions.
+- **Face ID lock** (`lib/lock.ts`, `components/LockGate.tsx`): turned on in the welcome (step 3) or Settings › Privacy. It covers the app at launch and after the app has been in the background. Face ID needs a development build; Expo Go on an iPhone asks for the passcode instead.
+- **The preview shows the whole handbook:** letters that open with it, then every written page, each opening read-only (`app/read/[id].tsx`, `app/read/letter/[id].tsx`).
+- Installed expo-local-authentication and expo-asset (a missing peer of expo-audio), and applied the SDK patch updates. expo-doctor passes 21/21.
+- **New native modules:** the image picker and the lock need a new development build.
+
+## Not built yet
+Sending the handbook to family and the "ask to open, wait N days" release (the `supabase/` folder is empty), letters delivered on a date, Shared with me, an app icon for Left in Love (`assets/hearth.icon` is still Hearth's), and a bundle id (`com.anonymous.hearth`).
+
+---
+
 # Session notes: Hearth
 
 Notes for picking up Hearth in a new Claude Code session. Last updated 2026-10-07.

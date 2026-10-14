@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Hearth",
-    "slug": "hearth",
+    "name": "Left in Love",
+    "slug": "left-in-love",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "hearth",
-    "userInterfaceStyle": "automatic",
+    "scheme": "leftinlove",
+    "userInterfaceStyle": "dark",
     "ios": {
       "icon": "./assets/hearth.icon"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6D8C3",
+        "backgroundColor": "#15141B",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -29,16 +29,33 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#E6D8C3",
+          "backgroundColor": "#15141B",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 180
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-sharing",
+      "expo-audio",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Left in Love lets you add photos to your handbook pages.",
+          "cameraPermission": "Left in Love lets you take photos for your handbook pages."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Left in Love uses Face ID to keep your handbook private."
+        }
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "backgroundColor": "#15141B"
   }
 }

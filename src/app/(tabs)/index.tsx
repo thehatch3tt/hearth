@@ -1,206 +1,157 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 
-import { GlassButton, GlassIconButton } from '@/components/Glass';
-import { Icon } from '@/components/Icon';
-import { Button, Card, CheckRow, Hairline, Label, LinkButton, Masthead, Screen, tap, Text, Title } from '@/components/ui';
-import { useDay, whenText } from '@/lib/day';
-import { type Person, useQuery } from '@/lib/db';
-import { useTheme } from '@/lib/theme';
-import { formatTime, relativeDay, spokenDate, spokenTime, todayKey, weekdayName } from '@/lib/time';
+import { Icon, type IconName } from '@/components/Icon';
+import { Button, Card, Eyebrow, Screen, Segmented, Text } from '@/components/ui';
+import { FIRST_WORDS, PAGES, SECTIONS } from '@/lib/content';
+import { getData, pageState, progress, useData } from '@/lib/store';
+import { colors } from '@/lib/theme';
 
-/** How many of the rest of today to show; the whole day is a page of its own. */
-const SHOWN = 3;
+/** Good morning / afternoon / evening, by the clock. */
+const greeting = () => {
+  const hour = new Date().getHours();
+  return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+};
 
-/** Today, set like a magazine page: the day as a headline, the next thing due, what's after it, and the people. */
-export default function TodayScreen() {
-  const { colors } = useTheme();
-  const { people, byId, items, open, done, next, toggle, settings } = useDay();
-  const warnings = useQuery<{ person_id: number; title: string }>(
-    "SELECT person_id, title FROM alerts WHERE title != '' ORDER BY sort, id",
-  );
-  const appointments = useQuery<{ person_id: number; day: string; title: string }>(
-    "SELECT person_id, day, title FROM appointments WHERE day >= ? AND day != '' ORDER BY day, time",
-    [todayKey()],
-  );
+/** Opens a short page that hasn't been started, picked at random (any page, if they're all begun). */
+const smallQuestion = () => {
+  const pages = getData().pages;
+  const open = PAGES.filter((page) => pageState(pages[page.id]) === 'empty');
+  const short = open.filter((page) => page.minutes <= 5);
+  const pool = short.length ? short : open.length ? open : PAGES;
+  const page = pool[Math.floor(Math.random() * pool.length)];
+  router.push({ pathname: '/page/[id]', params: { id: page.id } });
+};
 
-  const after = open.filter((item) => item !== next).slice(0, SHOWN);
-  const family = settings.family_name?.trim();
-  const now = new Date();
-
-  const openPerson = (id: number) => router.push({ pathname: '/person/[id]', params: { id: String(id) } });
-  const openDay = () => router.push('/day');
-
-  /** The short note beside a name in the contents: a warning first, else the next appointment, else their age. */
-  function aside(person: Person) {
-    const warning = warnings?.find((w) => w.person_id === person.id);
-    if (warning) return { text: warning.title, alert: true };
-    const visit = appointments?.find((a) => a.person_id === person.id);
-    if (visit) return { text: `${visit.title || 'Appointment'} ${relativeDay(visit.day)}`, alert: false };
-    return { text: person.age ? `age ${person.age}` : '', alert: false };
-  }
+/** Home: My handbook (progress, the sections, the first words) or Shared with me. */
+export default function Home() {
+  const data = useData();
+  const [tab, setTab] = useState<'mine' | 'shared'>('mine');
+  const { done, total, next } = progress(data);
+  const ring = 2 * Math.PI * 28;
 
   return (
-    <Screen tabBar>
-      <Masthead
-        label={family ? `The ${family} Family Handbook` : 'Our Family Handbook'}
-        right={<GlassIconButton icon="settings" label="Settings" onPress={() => router.push('/settings')} />}
+    <Screen tabs>
+      <View style={styles.header}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Icon name="heart" size={20} />
+          <Text weight={500} size={17}>
+            Left in Love
+          </Text>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Settings" onPress={() => router.navigate('/settings')} style={styles.avatar}>
+          <Text weight={500}>{(data.name.trim()[0] ?? '·').toUpperCase()}</Text>
+        </Pressable>
+      </View>
+
+      <Text size={28} weight={400}>{`${greeting()}${data.name.trim() ? `, ${data.name.trim()}` : ''}`}</Text>
+
+      <Segmented
+        label="Handbooks"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'mine', label: 'My handbook' },
+          { value: 'shared', label: 'Shared with me' },
+        ]}
       />
 
-      <Title size={72} deck={spokenDate(now)}>
-        {weekdayName(now)}
-      </Title>
-
-      {people?.length === 0 && (
-        <Animated.View entering={FadeIn} style={[styles.lead, styles.thinRule, { borderTopColor: colors.border }]}>
-          <Label color={colors.accent}>Welcome</Label>
-          <Text serif size={32} style={styles.headline}>
-            Start with the people <Text serif italic size={32}>you care for.</Text>
-          </Text>
-          <Text size={16} color={colors.muted} style={{ lineHeight: 23 }}>
-            Add your kids or a parent. Then fill in their allergies, medicine and routines, so anyone helping out knows what to
-            do.
-          </Text>
-          <Button title="Add a person" icon="plus" onPress={() => router.push('/person/edit')} style={{ alignSelf: 'flex-start' }} />
-        </Animated.View>
-      )}
-
-      {people && people.length > 0 && (
+      {tab === 'mine' ? (
         <>
-          <Animated.View
-            key={next?.key ?? 'none'}
-            entering={FadeIn.duration(260)}
-            style={[styles.lead, styles.thinRule, { borderTopColor: colors.border }]}>
-            {next ? (
-              <>
-                <Label color={colors.accent}>{next.time ? `Next, ${whenText(next.time)}` : 'Next'}</Label>
-                <Text serif size={32} style={styles.headline}>
-                  {`${next.title}, `}
-                  <Text serif italic size={32}>
-                    {`for ${byId.get(next.personId)!.name}${next.time ? ` ${spokenTime(next.time)}` : ''}.`}
-                  </Text>
-                </Text>
-                {next.note ? (
-                  <Text size={16} color={colors.muted} style={{ lineHeight: 22 }}>
-                    {next.note}
-                  </Text>
-                ) : null}
-                <GlassButton
-                  title={next.kind === 'medicine' ? 'Mark it given →' : 'Mark it done →'}
-                  onPress={() => {
-                    tap();
-                    toggle(next);
-                  }}
-                />
-              </>
-            ) : (
-              <>
-                <Label color={colors.accent}>{items.length ? 'All done' : 'Nothing today'}</Label>
-                <Text serif italic size={30} style={styles.headline}>
-                  {items.length ? 'Everything is done for today.' : 'Add medicine or a routine on someone’s page.'}
-                </Text>
-              </>
+          <Card style={styles.progress}>
+            <Svg width={68} height={68} viewBox="0 0 68 68">
+              <Circle cx={34} cy={34} r={28} fill="none" stroke="#2F2C3A" strokeWidth={5} />
+              <Circle cx={34} cy={34} r={28} fill="none" stroke={colors.accent} strokeWidth={5} strokeLinecap="round" strokeDasharray={`${(ring * done) / total} ${ring}`} transform="rotate(-90 34 34)" />
+            </Svg>
+            <View style={styles.ringText} pointerEvents="none">
+              <Text size={16} weight={400}>{`${Math.round((done / total) * 100)}%`}</Text>
+            </View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text size={17} weight={500}>{`${done} of ${total} pages written`}</Text>
+              <Text size={14} color={colors.muted}>
+                {next ? `Next: ${next.title}, about ${next.minutes} min` : 'Every page is written. Look it over now and then.'}
+              </Text>
+            </View>
+            {next && (
+              <Pressable accessibilityRole="button" accessibilityLabel={`Continue: ${next.title}`} onPress={() => router.push({ pathname: '/page/[id]', params: { id: next.id } })} style={styles.go}>
+                <Icon name="arrow" size={18} color={colors.onAccent} strokeWidth={2.2} />
+              </Pressable>
             )}
-          </Animated.View>
+          </Card>
 
-          {items.length > 1 && (
-            <Animated.View layout={LinearTransition.duration(240)}>
-              <Card style={{ gap: 0 }}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`The whole day, ${done.length} of ${items.length} done`}
-                  onPress={openDay}
-                  hitSlop={8}
-                  style={({ pressed }) => [styles.sectionHead, pressed && styles.pressed]}>
-                  <Label color={colors.ink}>{after.length ? 'After that' : 'Today'}</Label>
-                  <View style={styles.headRight}>
-                    <Text weight={600} size={12} color={colors.muted}>
-                      {`${done.length} of ${items.length} done`}
-                    </Text>
-                    <Icon name="chevron" size={16} color={colors.muted} />
-                  </View>
-                </Pressable>
-                {after.map((item, index) => (
-                  <Animated.View
-                    key={item.key}
-                    entering={FadeIn.duration(220)}
-                    exiting={FadeOut.duration(140)}
-                    layout={LinearTransition.duration(240)}>
-                    {index > 0 && <Hairline />}
-                    <CheckRow
-                      time={item.time}
-                      title={item.title}
-                      aside={byId.get(item.personId)!.name}
-                      checked={false}
-                      label={`${item.title}, ${byId.get(item.personId)!.name}${item.time ? `, ${formatTime(item.time)}` : ''}`}
-                      onPress={() => toggle(item)}
-                    />
-                  </Animated.View>
-                ))}
-                <LinkButton title="See the whole day →" onPress={openDay} />
-              </Card>
-            </Animated.View>
-          )}
+          <View style={styles.tiles}>
+            {SECTIONS.map((section) => {
+              const written = section.pages.filter((page) => pageState(data.pages[page.id]) === 'done').length;
+              return (
+                <Tile key={section.id} icon={section.icon as IconName} name={section.short} note={`${written} of ${section.pages.length}`} onPress={() => router.navigate({ pathname: '/handbook', params: { section: section.id } })} />
+              );
+            })}
+            <Tile icon="mail" name="Letters" note={data.letters.length === 1 ? '1 written' : `${data.letters.length} written`} onPress={() => router.navigate('/letters')} />
+          </View>
 
-          <Animated.View layout={LinearTransition.duration(240)}>
-            <Card style={{ gap: 2 }}>
-              <Label color={colors.ink}>In this handbook</Label>
-              {people.map((person) => {
-                const note = aside(person);
-                return (
-                  <Pressable
-                    key={person.id}
-                    accessibilityRole="link"
-                    accessibilityLabel={[person.name, note.text].filter(Boolean).join(', ')}
-                    accessibilityHint="Opens their page"
-                    onPress={() => openPerson(person.id)}
-                    style={({ pressed }) => [styles.contentsRow, pressed && styles.pressed]}>
-                    <Text
-                      serif
-                      size={24}
-                      numberOfLines={1}
-                      style={[styles.name, { textDecorationColor: colors.faint }]}>
-                      {person.name}
-                    </Text>
-                    <Text size={12} color={colors.faint} numberOfLines={1} ellipsizeMode="clip" style={styles.leader}>
-                      {LEADER}
-                    </Text>
-                    {note.text ? (
-                      <Text
-                        weight={700}
-                        size={12}
-                        color={note.alert ? colors.accent : colors.muted}
-                        numberOfLines={1}
-                        style={[styles.asideText, note.alert && styles.caps]}>
-                        {note.text}
-                      </Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-              <LinkButton title="+ Add someone" onPress={() => router.push('/person/edit')} />
-            </Card>
-          </Animated.View>
+          <Pressable accessibilityRole="button" onPress={smallQuestion} style={({ pressed }) => [styles.small, pressed && { borderColor: colors.accent }]}>
+            <Icon name="sprout" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text weight={400}>Not sure where to start?</Text>
+              <Text size={13} color={colors.faint}>
+                Try one small, easy question
+              </Text>
+            </View>
+            <Icon name="chevron" size={16} color="#5E5A6B" strokeWidth={2} />
+          </Pressable>
+
+          <Card style={{ padding: 16, gap: 6 }}>
+            <Eyebrow color={colors.accent} style={{ paddingHorizontal: 0 }}>
+              What your family reads first
+            </Eyebrow>
+            <Text size={15} color={colors.soft} style={{ lineHeight: 23 }}>
+              {FIRST_WORDS}
+            </Text>
+          </Card>
+        </>
+      ) : (
+        <>
+          <Card style={{ padding: 18, gap: 8 }}>
+            <Text size={18} weight={400}>
+              Nothing shared with you yet
+            </Text>
+            <Text size={15} color={colors.muted} style={{ lineHeight: 22 }}>
+              When someone leaves you their handbook, it will appear here. It opens only when they choose.
+            </Text>
+          </Card>
+          <Button label="Preview what your family will see" kind="outline" icon="eye" onPress={() => router.push('/preview')} />
         </>
       )}
     </Screen>
   );
 }
 
-/** Dots that run from a name to its note, cut off wherever the row ends. */
-const LEADER = ' .'.repeat(80);
+function Tile({ icon, name, note, onPress }: { icon: IconName; name: string; note: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${name}, ${note}`} onPress={onPress} style={({ pressed }) => [styles.tile, pressed && { backgroundColor: colors.raised }]}>
+      <View style={styles.tileIcon}>
+        <Icon name={icon} size={18} />
+      </View>
+      <Text size={14} weight={500}>
+        {name}
+      </Text>
+      <Text size={12} color={colors.muted}>
+        {note}
+      </Text>
+    </Pressable>
+  );
+}
 
 const styles = StyleSheet.create({
-  caps: { letterSpacing: 1.5, textTransform: 'uppercase' },
-  lead: { gap: 12, paddingTop: 16 },
-  thinRule: { borderTopWidth: 1 },
-  headline: { lineHeight: 36 },
-  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 32 },
-  headRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  contentsRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, minHeight: 44, paddingVertical: 4 },
-  name: { flexShrink: 1, textDecorationLine: 'underline' },
-  leader: { flex: 1, minWidth: 16 },
-  asideText: { maxWidth: 170, flexShrink: 0 },
-  pressed: { opacity: 0.6 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.raised, alignItems: 'center', justifyContent: 'center' },
+  progress: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16 },
+  ringText: { position: 'absolute', left: 16, top: 16, width: 68, height: 68, alignItems: 'center', justifyContent: 'center' },
+  go: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  small: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.selected },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  tile: { width: '31.5%', flexGrow: 1, backgroundColor: colors.card, borderRadius: 18, padding: 12, gap: 8 },
+  tileIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.raised, alignItems: 'center', justifyContent: 'center' },
 });

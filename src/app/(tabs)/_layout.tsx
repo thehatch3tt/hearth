@@ -1,19 +1,20 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 
 import { TabBar } from '@/components/TabBar';
-import { useTheme } from '@/lib/theme';
+import { useData } from '@/lib/store';
+import { colors } from '@/lib/theme';
 
-/** The four tabs, with the floating glass menu bar (components/TabBar.tsx) instead of the stock one. */
+/** The five tabs. Someone new sees the welcome first. */
 export default function TabsLayout() {
-  const { colors } = useTheme();
+  const { welcomed } = useData();
+  if (!welcomed) return <Redirect href="/welcome" />;
   return (
-    <Tabs
-      tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}>
-      <Tabs.Screen name="index" options={{ title: 'Today' }} />
+    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}>
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="handbook" options={{ title: 'Handbook' }} />
       <Tabs.Screen name="family" options={{ title: 'Family' }} />
-      <Tabs.Screen name="house" options={{ title: 'Our home' }} />
-      <Tabs.Screen name="share" options={{ title: 'Share' }} />
+      <Tabs.Screen name="letters" options={{ title: 'Letters' }} />
+      <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
     </Tabs>
   );
 }
