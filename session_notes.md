@@ -1,6 +1,6 @@
 # Session notes: Left in Love (this folder, formerly Hearth)
 
-Hearth was replaced in this folder by **Left in Love**, an app for writing down what your family will need when you die (a handbook in five sections, letters that open later, voice notes, grief help for the family). Everything stays on the phone (`lib/store.ts`, one JSON record in the expo-sqlite key-value store). Look: "Evening", dark plum-charcoal with a champagne accent, Outfit (`lib/theme.ts`). Mockups: claude.ai/artifact/6s3NrRVxUBF7AWWLLAMBob (could not be opened from Claude Code on 2026-10-14). Nothing of Left in Love is committed yet.
+Hearth was replaced in this folder by **Left in Love**, an app for writing down what your family will need when you die (a handbook in five sections, letters that open later, voice notes, grief help for the family). Everything stays on the phone (`lib/store.ts`, one JSON record in the expo-sqlite key-value store). Look: "Evening", dark plum-charcoal with a champagne accent, Outfit (`lib/theme.ts`). Mockups: claude.ai/artifact/6s3NrRVxUBF7AWWLLAMBob (could not be opened from Claude Code on 2026-10-14). Committed and pushed as `70f0fb4` (2026-10-14). The `supabase/.temp/` CLI files and a stray `ProjectsPlacemark/` folder are left out on purpose (git-ignored).
 
 ## Added 2026-10-14
 - **Fixed** a line break inside a string in `app/letter/[id].tsx` that stopped the app compiling.
