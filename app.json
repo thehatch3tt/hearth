@@ -8,17 +8,21 @@
     "scheme": "leftinlove",
     "userInterfaceStyle": "dark",
     "ios": {
-      "icon": "./assets/hearth.icon"
+      "bundleIdentifier": "com.thehatch3tt.leftinlove",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#15141B",
+        "backgroundColor": "#1B1922",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.hearth"
+      "package": "com.thehatch3tt.leftinlove"
     },
     "web": {
       "output": "static",
@@ -56,6 +60,19 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#15141B"
+    "backgroundColor": "#15141B",
+    "owner": "thehatch3tt",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "166a7f99-96d0-4e3f-9749-72a8698a4289"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/166a7f99-96d0-4e3f-9749-72a8698a4289"
+    }
   }
 }
