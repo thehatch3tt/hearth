@@ -137,18 +137,19 @@ export default function WriteLetter() {
 /** When should it open: with the handbook, on a date, or at a moment in their life. */
 function WhenSheet({ visible, name, opens, onChange, onClose }: { visible: boolean; name: string; opens: Opens; onChange: (opens: Opens) => void; onClose: () => void }) {
   const insets = useSafeAreaInsets();
-  const who = name || 'they';
+  const who = name || 'them';
   const kinds: { kind: Opens['kind']; label: string; about: string }[] = [
     { kind: 'handbook', label: 'With the handbook', about: 'When your family opens it' },
     { kind: 'date', label: 'On a date', about: 'A birthday, an anniversary, any day you pick' },
     { kind: 'moment', label: 'At a moment in their life', about: 'Whenever it happens' },
   ];
+  // Only what the app does today: the letter is kept with the handbook, sealed and marked for its time.
   const how =
     opens.kind === 'handbook'
-      ? `${name || 'They'} will get this letter as soon as your handbook opens for them.`
+      ? `${name || 'They'} will find this letter with your handbook.`
       : opens.kind === 'date'
-        ? `On the morning of that day, ${who} will get a gentle note: “You have a letter for today.”`
-        : `When it happens, family can mark the moment in the app, or ${who} can open it themselves.`;
+        ? `It stays sealed in your handbook, marked for ${who} to open on that day.`
+        : `It stays sealed in your handbook, marked for ${who} to open when that moment comes.`;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -214,7 +215,7 @@ function WhenSheet({ visible, name, opens, onChange, onClose }: { visible: boole
           )}
 
           <View style={styles.how}>
-            <Icon name="bell" size={20} />
+            <Icon name="lock" size={20} />
             <Text size={14} color={colors.soft} style={{ flex: 1, lineHeight: 22 }}>
               {how}
             </Text>

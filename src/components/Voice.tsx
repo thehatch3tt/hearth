@@ -1,6 +1,6 @@
 /**
  * Voice notes (mockup 10): a list of a page's or letter's recordings with play and remove, and the
- * sheet that records a new one. `useRecording` is shared with "Talk it through".
+ * sheet that records a new one (also opened from a page's tool bar).
  */
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { useState } from 'react';
@@ -56,8 +56,11 @@ export function useRecording() {
   return { recorder, state, start, stop, discard, level };
 }
 
-/** A page's or letter's voice notes, with a button to record another (not when `readOnly`, the family's view). */
-export function VoiceNotes({ notes, onAdd, onRemove, suggestion, readOnly }: { notes: VoiceNote[]; onAdd?: (note: VoiceNote) => void; onRemove?: (note: VoiceNote) => void; suggestion?: string; readOnly?: boolean }) {
+/**
+ * A page's or letter's voice notes, with a button to record another (not when `readOnly`, the family's
+ * view, or when the screen has its own record button: `recordButton={false}`).
+ */
+export function VoiceNotes({ notes, onAdd, onRemove, suggestion, readOnly, recordButton = true }: { notes: VoiceNote[]; onAdd?: (note: VoiceNote) => void; onRemove?: (note: VoiceNote) => void; suggestion?: string; readOnly?: boolean; recordButton?: boolean }) {
   const player = useAudioPlayer(null);
   const status = useAudioPlayerStatus(player);
   const [playing, setPlaying] = useState<string | null>(null);
@@ -114,7 +117,7 @@ export function VoiceNotes({ notes, onAdd, onRemove, suggestion, readOnly }: { n
           })}
         </View>
       )}
-      {!readOnly && (
+      {!readOnly && recordButton && (
         <>
           <Pressable accessibilityRole="button" onPress={() => setRecording(true)} style={({ pressed }) => [styles.record, pressed && { borderColor: colors.accent }]}>
             <Icon name="mic" size={18} />
@@ -128,7 +131,7 @@ export function VoiceNotes({ notes, onAdd, onRemove, suggestion, readOnly }: { n
 }
 
 /** The recording sheet: timer, the voice as bars, start over / pause / save. */
-function RecordSheet({ visible, suggestion, onClose, onSave }: { visible: boolean; suggestion?: string; onClose: () => void; onSave: (note: VoiceNote) => void }) {
+export function RecordSheet({ visible, suggestion, onClose, onSave }: { visible: boolean; suggestion?: string; onClose: () => void; onSave: (note: VoiceNote) => void }) {
   const insets = useSafeAreaInsets();
   const { recorder, state, start, stop, discard, level } = useRecording();
   const [title, setTitle] = useState('');

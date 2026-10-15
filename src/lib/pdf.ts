@@ -43,11 +43,13 @@ async function html(data: Data, parts: Set<Part>) {
       .map((page) => {
         const saved = data.pages[page.id];
         const entries = (saved?.entries ?? []).filter((entry) => entry.title.trim() || entry.note.trim());
+        const fields = (page.fields ?? []).map((field) => ({ label: field.label, value: saved?.fields?.[field.id]?.trim() ?? '' })).filter((field) => field.value);
         const voice = saved?.voice ?? [];
         const body = saved?.body?.trim();
         const photos = pictures[page.id] ?? '';
-        if (!entries.length && !body && !voice.length && !photos) return '';
+        if (!entries.length && !fields.length && !body && !voice.length && !photos) return '';
         return `<section><h3>${escape(page.title)}</h3>
+          ${fields.length ? `<ul>${fields.map((field) => `<li><b>${escape(field.label)}:</b> ${escape(field.value)}</li>`).join('')}</ul>` : ''}
           ${entries.length ? `<ul>${entries.map((entry) => `<li><b>${escape(entry.title)}</b>${entry.note.trim() ? ` — ${escape(entry.note)}` : ''}</li>`).join('')}</ul>` : ''}
           ${body ? paragraphs(body) : ''}
           ${photos}

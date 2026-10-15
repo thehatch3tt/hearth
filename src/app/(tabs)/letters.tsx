@@ -54,13 +54,6 @@ export default function Letters() {
         </Card>
       )}
 
-      <Card style={{ flexDirection: 'row', gap: 12, padding: 16 }}>
-        <Icon name="calendar" size={20} />
-        <Text size={14} color={colors.soft} style={{ flex: 1, lineHeight: 22 }}>
-          A letter can open with the handbook, on a date you choose, or at a moment someone marks, like a wedding day or a first child.
-        </Text>
-      </Card>
-
       <Button label="Write a letter" icon="pen" onPress={() => router.push({ pathname: '/letter/[id]', params: { id: 'new' } })} />
     </Screen>
   );

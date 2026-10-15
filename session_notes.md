@@ -2,6 +2,18 @@
 
 Hearth was replaced in this folder by **Left in Love**, an app for writing down what your family will need when you die (a handbook in five sections, letters that open later, voice notes, grief help for the family). Everything stays on the phone (`lib/store.ts`, one JSON record in the expo-sqlite key-value store). Look: "Evening", dark plum-charcoal with a champagne accent, Outfit (`lib/theme.ts`). Mockups: claude.ai/artifact/6s3NrRVxUBF7AWWLLAMBob (could not be opened from Claude Code on 2026-10-14). Committed and pushed as `70f0fb4` (2026-10-14). The `supabase/.temp/` CLI files and a stray `ProjectsPlacemark/` folder are left out on purpose (git-ignored).
 
+## Added 2026-10-15
+- **UI fixes** (`b4af257`): a floating glass tab bar (`components/Glass.tsx`), pill buttons, react-native-keyboard-controller so fields stay above the keyboard (bottom sheets use `SheetFrame`), the right bottom padding, and a dark navigation theme (no white edges). Version 1.0.1 (`1eaa3b8`) because the keyboard library is native: **a new build is needed**, and don't `eas update` 1.0.0 builds.
+- **A+ redesign** (canvas: claude.ai/artifact/3uofFV9sWZr1z9PzjzDMnB, row "A+"):
+  - Three tabs: Home, Handbook, Letters. Family and Settings became **You** (`app/you.tsx`, a modal from your initial on Home), which leads with the privacy promise.
+  - Home keeps the tiles (the user likes them), with one question to think about (it opens the page and starts the writing with it) and "Written for Ann and Sam".
+  - Handbook is one contents list; each part opens in place, with the first words written on each page.
+  - Writing a page: one writing area, and a floating glass bar for a question, a voice note, a photo, and "Done for now". There's no "mark done" any more: a page with anything on it counts as written (`isWritten`).
+  - **New pages** in Begin here: "The facts they'll be asked for" and "Where my papers are" (a new `fields` page kind).
+  - **28 pages became 23:** see `MERGED` in `lib/content.ts`. Saved writing moves across when the app loads (`merge` in `lib/store.ts`).
+  - Removed what wasn't built: Shared with me, the wait days, "Someone left me a handbook", "Talk it through", and the dated-letter notification promise.
+- **Privacy and legal wording** (`KEPT_HERE`, `KEPT_HERE_BACKUPS`, `NOT_ADVICE` in `lib/content.ts`): only on this phone, no account or server; it leaves only as a backup file or PDF the user sends; iCloud/Google phone backups include it; not legal, medical or financial advice; the papers page isn't a will. Checked: nothing in `src/` sends data anywhere. (The `firebase` package is still installed but unused.)
+
 ## Added 2026-10-14
 - **Fixed** a line break inside a string in `app/letter/[id].tsx` that stopped the app compiling.
 - **Photos on pages** (`components/Photos.tsx`): camera or library (up to 10 at once), a full-size view with a caption, delete. They are saved in `photos/` by id, included in backups, and printed in the PDF with captions.
@@ -11,7 +23,7 @@ Hearth was replaced in this folder by **Left in Love**, an app for writing down 
 - **New native modules:** the image picker and the lock need a new development build.
 
 ## Not built yet
-Sending the handbook to family and the "ask to open, wait N days" release (the `supabase/` folder is empty), letters delivered on a date, Shared with me, an app icon for Left in Love (`assets/hearth.icon` is still Hearth's), and a bundle id (`com.anonymous.hearth`).
+Sending the handbook to family and the "ask to open, wait N days" release (the `supabase/` folder is empty), letters delivered on a date, and Shared with me (all hidden from the app until built).
 
 ---
 

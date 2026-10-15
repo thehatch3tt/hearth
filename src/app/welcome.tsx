@@ -7,7 +7,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Icon, type IconName } from '@/components/Icon';
 import { BackButton, Button, Card, Dots, Text, Toggle } from '@/components/ui';
-import { pageById } from '@/lib/content';
+import { KEPT_HERE_BACKUPS, pageById } from '@/lib/content';
 import { canLock, confirmLock, lockName } from '@/lib/lock';
 import { update, useData, type Data } from '@/lib/store';
 import { colors, fonts } from '@/lib/theme';
@@ -18,15 +18,15 @@ const WHOSE: { id: Data['whose']; label: string; about: string; icon: IconName }
   { id: 'together', label: 'Ours, as a couple', about: 'One handbook you both add to', icon: 'couple' },
 ];
 
+/** Only what's true today (see KEPT_HERE in lib/content.ts): no account, no server, nothing sent. */
 const PRIVATE: { title: string; about: string; icon: IconName }[] = [
-  { title: 'It lives on your phone', about: 'Everything you write stays here, and works without the internet.', icon: 'phone' },
-  { title: 'Sealed when you share it', about: 'It is locked on your phone before it ever leaves, so not even we can read it.', icon: 'lock' },
-  { title: 'You decide who, and when', about: 'Choose who receives it and how long to wait before it opens for them.', icon: 'people' },
+  { title: 'It lives only on this phone', about: 'There’s no account and no server. Everything you write stays here, and works without the internet.', icon: 'phone' },
+  { title: 'No one else can read it', about: 'Not even us. It leaves the phone only if you send it yourself, as a backup file or a PDF.', icon: 'lock' },
 ];
 
 const STARTS: { id: string; label: string; about: string; time: string; icon: IconName }[] = [
   { id: 'note', label: 'A note to start', about: 'The first words your family will read', time: '5 min', icon: 'mail' },
-  { id: 'tell', label: 'Who to tell first', about: 'The few people to call right away', time: '5 min', icon: 'call' },
+  { id: 'facts', label: 'The facts they’ll be asked for', about: 'Your full name, where you were born, and more', time: '5 min', icon: 'file' },
   { id: 'kept', label: 'Where things are kept', about: 'Papers, keys, the safe', time: '10 min', icon: 'folder' },
   { id: 'letter', label: 'A letter to someone', about: 'For now, or for a moment to come', time: 'Any time', icon: 'pen' },
 ];
@@ -80,7 +80,6 @@ export default function Welcome() {
           </View>
           <View style={{ gap: 10 }}>
             <Button label="Begin" onPress={() => setStep(2)} />
-            <Button label="Someone left me a handbook" kind="outline" onPress={() => finish(() => router.replace('/preview'))} />
           </View>
         </>
       )}
@@ -120,7 +119,7 @@ export default function Welcome() {
 
       {step === 3 && (
         <>
-          <Text size={30}>Kept between you and the people you choose</Text>
+          <Text size={30}>Kept only on this phone</Text>
           <View style={{ gap: 22 }}>
             {PRIVATE.map((point) => (
               <View key={point.title} style={{ flexDirection: 'row', gap: 16 }}>
@@ -137,13 +136,16 @@ export default function Welcome() {
                 </View>
               </View>
             ))}
+            <Text size={13} color={colors.faint} style={{ lineHeight: 19 }}>
+              {KEPT_HERE_BACKUPS}
+            </Text>
           </View>
           {canLock && (
             <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
               <View style={{ flex: 1 }}>
                 <Text weight={400}>{`Lock with ${lockLabel}`}</Text>
                 <Text size={13} color={colors.faint}>
-                  You can change this in Settings
+                  You can change this later, from your initial on Home
                 </Text>
               </View>
               <Toggle value={lock} onChange={async (on) => setLock(on ? await confirmLock() : false)} label={`Lock with ${lockLabel}`} />

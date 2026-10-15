@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text as RNText, View, type StyleProp, type TextP
 import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GlassPill } from '@/components/Glass';
 import { Icon, type IconName } from '@/components/Icon';
 import { colors, fonts, type Weight } from '@/lib/theme';
 
@@ -27,11 +28,13 @@ export const tabBarBottom = (insetsBottom: number) => (insetsBottom > 0 ? insets
 
 /**
  * A page: scrolls (with no scroll bar), clears the status bar, and leaves just enough room at the foot
- * for the floating tab bar (`tabs`) or a bottom bar of buttons (`footer`, kept in view). The field
- * being typed in, and the line being typed, stay above the keyboard.
+ * for the floating tab bar (`tabs`), a floating glass bar of its own (`floating`), or a bottom bar of
+ * buttons (`footer`, kept in view). The field being typed in, and the line being typed, stay above
+ * the keyboard.
  */
-export function Screen({ children, tabs, footer, gap = 16 }: { children: ReactNode; tabs?: boolean; footer?: ReactNode; gap?: number }) {
+export function Screen({ children, tabs, floating, footer, gap = 16 }: { children: ReactNode; tabs?: boolean; floating?: ReactNode; footer?: ReactNode; gap?: number }) {
   const insets = useSafeAreaInsets();
+  const clear = tabs || floating;
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAwareScrollView
@@ -40,9 +43,14 @@ export function Screen({ children, tabs, footer, gap = 16 }: { children: ReactNo
         showsHorizontalScrollIndicator={false}
         alwaysBounceVertical={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 18, paddingBottom: tabs ? tabBarBottom(insets.bottom) + TAB_BAR_HEIGHT + 20 : footer ? 20 : insets.bottom + 20, gap }}>
+        contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 18, paddingBottom: clear ? tabBarBottom(insets.bottom) + TAB_BAR_HEIGHT + 20 : footer ? 20 : insets.bottom + 20, gap }}>
         {children}
       </KeyboardAwareScrollView>
+      {floating && (
+        <GlassPill height={TAB_BAR_HEIGHT} style={[styles.floating, { bottom: tabBarBottom(insets.bottom) }]}>
+          {floating}
+        </GlassPill>
+      )}
       {footer && <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>{footer}</View>}
     </View>
   );
@@ -179,5 +187,6 @@ const styles = StyleSheet.create({
   round: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
   rowLine: { borderTopWidth: 1, borderTopColor: colors.line },
+  floating: { position: 'absolute', left: 16, right: 16, paddingLeft: 8, paddingRight: 9, gap: 2 },
   footer: { paddingHorizontal: 18, paddingTop: 12, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: 'row', gap: 10 },
 });

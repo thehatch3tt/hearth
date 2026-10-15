@@ -1,5 +1,5 @@
 /**
- * Covers the app until Face ID (or the passcode) says it's them, when the lock is on in Settings. It
+ * Covers the app until Face ID (or the passcode) says it's them, when the lock is on (app/you). It
  * locks again whenever the app goes to the background. The screens stay underneath, so nothing is lost.
  */
 import { useEffect, useState, type ReactNode } from 'react';

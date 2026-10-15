@@ -5,7 +5,7 @@ import { Icon } from '@/components/Icon';
 import { BackButton, Button, Card, Eyebrow, Screen, Text } from '@/components/ui';
 import { SECTIONS } from '@/lib/content';
 import { sharePdf, type Part } from '@/lib/pdf';
-import { pageState, useData } from '@/lib/store';
+import { isWritten, useData } from '@/lib/store';
 import { colors } from '@/lib/theme';
 
 /** Make a PDF (mockup 14): pick what goes in; logins and letters stay out unless chosen. */
@@ -14,13 +14,13 @@ export default function Pdf() {
   const [parts, setParts] = useState<Set<Part>>(() => new Set(SECTIONS.map((section) => section.id)));
   const [busy, setBusy] = useState(false);
 
-  const written = (ids: string[]) => ids.filter((id) => pageState(data.pages[id]) !== 'empty').length;
+  const written = (ids: string[]) => ids.filter((id) => isWritten(data.pages[id])).length;
   const options: { id: Part; title: string; note: string }[] = [
     ...SECTIONS.map((section) => {
       const ids = section.pages.filter((page) => page.id !== 'logins').map((page) => page.id);
       return { id: section.id as Part, title: section.title, note: `${written(ids)} of ${ids.length} pages written` };
     }),
-    { id: 'logins', title: 'Logins and codes', note: 'Left out unless you choose it' },
+    { id: 'logins', title: 'Phone, logins and accounts', note: 'Left out unless you choose it' },
     { id: 'letters', title: 'Letters', note: `${data.letters.length} written · stay sealed unless you include them` },
   ];
 

@@ -21,41 +21,51 @@ type Props = {
   onCaption?: (photo: Photo, caption: string) => void;
   readOnly?: boolean;
   hint?: string;
+  addTile?: boolean;
 };
 
-export function Photos({ photos, onAdd, onRemove, onCaption, readOnly, hint }: Props) {
-  const [open, setOpen] = useState<Photo | null>(null);
+/** Takes a photo, or picks some from the library, and saves them on the phone. */
+async function add(from: 'camera' | 'library'): Promise<Photo[]> {
+  let result: ImagePicker.ImagePickerResult;
+  if (from === 'camera') {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Camera is off', 'To take a photo, allow the camera for Left in Love in your phone’s Settings app.');
+      return [];
+    }
+    result = await ImagePicker.launchCameraAsync({ mediaTypes: 'images', quality: 0.7 });
+  } else {
+    result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7, allowsMultipleSelection: true, selectionLimit: 10 });
+  }
+  if (result.canceled) return [];
+  const added: Photo[] = [];
+  for (const asset of result.assets) {
+    const id = newId();
+    await keep(asset.uri, photoFile(id));
+    added.push({ id });
+  }
+  return added;
+}
 
-  const add = async (from: 'camera' | 'library') => {
-    let result: ImagePicker.ImagePickerResult;
-    if (from === 'camera') {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Camera is off', 'To take a photo, allow the camera for Left in Love in your phone’s Settings app.');
-        return;
-      }
-      result = await ImagePicker.launchCameraAsync({ mediaTypes: 'images', quality: 0.7 });
-    } else {
-      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.7, allowsMultipleSelection: true, selectionLimit: 10 });
-    }
-    if (result.canceled) return;
-    const added: Photo[] = [];
-    for (const asset of result.assets) {
-      const id = newId();
-      await keep(asset.uri, photoFile(id));
-      added.push({ id });
-    }
-    onAdd?.(added);
+/** Asks camera or library, then hands back what was added (nothing if cancelled). */
+export const choosePhotos = (onAdd: (photos: Photo[]) => void) => {
+  const go = async (from: 'camera' | 'library') => {
+    const added = await add(from);
+    if (added.length) onAdd(added);
   };
+  if (Platform.OS === 'web') go('library');
+  else
+    Alert.alert('Add a photo', undefined, [
+      { text: 'Take a photo', onPress: () => go('camera') },
+      { text: 'Choose from your photos', onPress: () => go('library') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+};
 
-  const choose = () =>
-    Platform.OS === 'web'
-      ? add('library')
-      : Alert.alert('Add a photo', undefined, [
-          { text: 'Take a photo', onPress: () => add('camera') },
-          { text: 'Choose from your photos', onPress: () => add('library') },
-          { text: 'Cancel', style: 'cancel' },
-        ]);
+/** `addTile={false}`: the screen has its own add button (a page's tool bar), so the grid shows only photos. */
+export function Photos({ photos, onAdd, onRemove, onCaption, readOnly, hint, addTile = true }: Props) {
+  const [open, setOpen] = useState<Photo | null>(null);
+  const choose = () => choosePhotos((added) => onAdd?.(added));
 
   const remove = (photo: Photo) =>
     Alert.alert('Delete this photo?', 'It will be removed from this page. The original stays in your photo library.', [
@@ -71,7 +81,7 @@ export function Photos({ photos, onAdd, onRemove, onCaption, readOnly, hint }: P
       },
     ]);
 
-  if (readOnly && !photos.length) return null;
+  if ((readOnly || !addTile) && !photos.length) return null;
 
   return (
     <View style={{ gap: 8 }}>
@@ -81,7 +91,7 @@ export function Photos({ photos, onAdd, onRemove, onCaption, readOnly, hint }: P
             <Image source={{ uri: photoFile(photo.id).uri }} style={styles.thumb} contentFit="cover" transition={150} />
           </Pressable>
         ))}
-        {!readOnly && (
+        {!readOnly && addTile && (
           <Pressable accessibilityRole="button" accessibilityLabel="Add a photo" onPress={choose} style={({ pressed }) => [styles.cell, styles.add, pressed && { borderColor: colors.accent }]}>
             <Icon name="photo" size={22} />
             <Text size={12} color={colors.muted}>
@@ -90,7 +100,7 @@ export function Photos({ photos, onAdd, onRemove, onCaption, readOnly, hint }: P
           </Pressable>
         )}
       </View>
-      {!readOnly && !photos.length && hint ? (
+      {!readOnly && addTile && !photos.length && hint ? (
         <Text size={13} color={colors.faint} style={{ paddingHorizontal: 4 }}>
           {hint}
         </Text>

@@ -44,6 +44,7 @@ export default function RootLayout() {
             <Stack.Screen name="page/[id]" />
             <Stack.Screen name="letter/[id]" />
             <Stack.Screen name="preview" />
+            <Stack.Screen name="you" options={{ presentation: 'modal' }} />
           </Stack>
         </LockGate>
       </KeyboardProvider>
