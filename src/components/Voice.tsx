@@ -8,7 +8,7 @@ import { Alert, Modal, Pressable, StyleSheet, TextInput, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { Text } from '@/components/ui';
+import { SheetFrame, Text } from '@/components/ui';
 import { forget, keep, voiceFile } from '@/lib/media';
 import { newId, type VoiceNote } from '@/lib/store';
 import { colors, fonts } from '@/lib/theme';
@@ -170,57 +170,59 @@ function RecordSheet({ visible, suggestion, onClose, onSave }: { visible: boolea
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close" />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
-        <View style={styles.grabber} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text size={20} weight={400}>
-            A voice note
-          </Text>
-          <Pressable accessibilityRole="button" hitSlop={8} onPress={close}>
-            <Text color={colors.muted}>Cancel</Text>
-          </Pressable>
-        </View>
-
-        {suggestion ? (
-          <View style={styles.hint}>
-            <Text size={12} weight={500} color={colors.accent} style={{ letterSpacing: 1.2, textTransform: 'uppercase' }}>
-              Try saying
+      <SheetFrame>
+        <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close" />
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
+          <View style={styles.grabber} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text size={20} weight={400}>
+              A voice note
             </Text>
-            <Text size={16} color="#E4E0EA">
-              {suggestion}
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={close}>
+              <Text color={colors.muted}>Cancel</Text>
+            </Pressable>
+          </View>
+
+          {suggestion ? (
+            <View style={styles.hint}>
+              <Text size={12} weight={500} color={colors.accent} style={{ letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                Try saying
+              </Text>
+              <Text size={16} color="#E4E0EA">
+                {suggestion}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={{ alignItems: 'center', gap: 12 }}>
+            <Text weight={200} size={46} style={{ fontVariant: ['tabular-nums'], lineHeight: 56 }}>
+              {clock(state.durationMillis / 1000)}
+            </Text>
+            <View accessibilityLabel="Your voice, as it's recorded" style={styles.bars}>
+              {SHAPE.map((shape, i) => (
+                <View key={i} style={{ width: 4, borderRadius: 2, height: Math.max(4, 52 * shape * level), backgroundColor: state.isRecording ? colors.accent : colors.outline }} />
+              ))}
+            </View>
+            <Text size={14} color={colors.faint}>
+              {!started ? 'Tap the circle to start' : paused ? 'Paused. Tap to keep going.' : 'Recording…'}
             </Text>
           </View>
-        ) : null}
 
-        <View style={{ alignItems: 'center', gap: 12 }}>
-          <Text weight={200} size={46} style={{ fontVariant: ['tabular-nums'], lineHeight: 56 }}>
-            {clock(state.durationMillis / 1000)}
-          </Text>
-          <View accessibilityLabel="Your voice, as it's recorded" style={styles.bars}>
-            {SHAPE.map((shape, i) => (
-              <View key={i} style={{ width: 4, borderRadius: 2, height: Math.max(4, 52 * shape * level), backgroundColor: state.isRecording ? colors.accent : colors.outline }} />
-            ))}
+          <View style={styles.controls}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Start over" disabled={!started} onPress={again} style={[styles.side, !started && { opacity: 0.35 }]}>
+              <Icon name="restart" size={20} color={colors.soft} />
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={!started ? 'Start recording' : state.isRecording ? 'Pause' : 'Keep recording'} onPress={toggle} style={styles.big}>
+              {state.isRecording ? <View style={styles.stopMark} /> : <View style={styles.recordMark} />}
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Save" disabled={!started} onPress={save} style={[styles.side, { backgroundColor: colors.accent, borderColor: colors.accent }, !started && { opacity: 0.35 }]}>
+              <Icon name="check" size={22} color={colors.onAccent} strokeWidth={2.4} />
+            </Pressable>
           </View>
-          <Text size={14} color={colors.faint}>
-            {!started ? 'Tap the circle to start' : paused ? 'Paused. Tap to keep going.' : 'Recording…'}
-          </Text>
-        </View>
 
-        <View style={styles.controls}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Start over" disabled={!started} onPress={again} style={[styles.side, !started && { opacity: 0.35 }]}>
-            <Icon name="restart" size={20} color={colors.soft} />
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={!started ? 'Start recording' : state.isRecording ? 'Pause' : 'Keep recording'} onPress={toggle} style={styles.big}>
-            {state.isRecording ? <View style={styles.stopMark} /> : <View style={styles.recordMark} />}
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Save" disabled={!started} onPress={save} style={[styles.side, { backgroundColor: colors.accent, borderColor: colors.accent }, !started && { opacity: 0.35 }]}>
-            <Icon name="check" size={22} color={colors.onAccent} strokeWidth={2.4} />
-          </Pressable>
+          <TextInput value={title} onChangeText={setTitle} placeholder="Name it (optional)" placeholderTextColor={colors.faint} accessibilityLabel="Name this voice note" style={styles.title} />
         </View>
-
-        <TextInput value={title} onChangeText={setTitle} placeholder="Name it (optional)" placeholderTextColor={colors.faint} accessibilityLabel="Name this voice note" style={styles.title} />
-      </View>
+      </SheetFrame>
     </Modal>
   );
 }
@@ -231,7 +233,7 @@ const styles = StyleSheet.create({
   line: { borderTopWidth: 1, borderTopColor: colors.line },
   play: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.selected, alignItems: 'center', justifyContent: 'center' },
   pauseMark: { width: 10, height: 12, borderLeftWidth: 3, borderRightWidth: 3, borderColor: colors.accent },
-  record: { height: 48, borderRadius: 14, borderWidth: 1, borderColor: colors.selected, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  record: { height: 48, borderRadius: 999, borderWidth: 1, borderColor: colors.selected, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   backdrop: { flex: 1, backgroundColor: 'rgba(5,4,8,0.6)' },
   sheet: { backgroundColor: colors.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 10, gap: 18 },
   grabber: { width: 38, height: 5, borderRadius: 3, backgroundColor: colors.outline, alignSelf: 'center' },

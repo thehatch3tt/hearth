@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { Eyebrow, Text } from '@/components/ui';
+import { Eyebrow, SheetFrame, Text } from '@/components/ui';
 import { VoiceNotes } from '@/components/Voice';
 import { LETTER_PROMPTS, MOMENTS } from '@/lib/content';
 import { forget, voiceFile } from '@/lib/media';
@@ -63,7 +64,7 @@ export default function WriteLetter() {
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 14, paddingBottom: insets.bottom + 24, gap: 14 }}>
+      <KeyboardAwareScrollView bottomOffset={24} showsVerticalScrollIndicator={false} alwaysBounceVertical={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 14, paddingBottom: insets.bottom + 24, gap: 14 }}>
         <View style={styles.card}>
           <View style={styles.field}>
             <Text size={14} color={colors.faint} style={{ width: 52 }}>
@@ -126,7 +127,7 @@ export default function WriteLetter() {
             </Text>
           </Pressable>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <WhenSheet visible={choosing} name={to.trim()} opens={opens} onChange={setOpens} onClose={() => setChoosing(false)} />
     </View>
@@ -151,73 +152,75 @@ function WhenSheet({ visible, name, opens, onChange, onClose }: { visible: boole
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
-        <View style={styles.grabber} />
-        <View style={[styles.top, { paddingHorizontal: 0 }]}>
-          <Text size={22} style={{ flex: 1 }}>{`When should ${name || 'they'} get this?`}</Text>
-          <Pressable accessibilityRole="button" hitSlop={8} onPress={onClose}>
-            <Text weight={500} color={colors.accent}>
-              Done
-            </Text>
-          </Pressable>
-        </View>
+      <SheetFrame>
+        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" />
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
+          <View style={styles.grabber} />
+          <View style={[styles.top, { paddingHorizontal: 0 }]}>
+            <Text size={22} style={{ flex: 1 }}>{`When should ${name || 'they'} get this?`}</Text>
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={onClose}>
+              <Text weight={500} color={colors.accent}>
+                Done
+              </Text>
+            </Pressable>
+          </View>
 
-        <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
-          {kinds.map((item) => {
-            const on = opens.kind === item.kind;
-            return (
-              <Pressable
-                key={item.kind}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: on }}
-                onPress={() => onChange(item.kind === 'handbook' ? { kind: 'handbook' } : item.kind === 'date' ? { kind: 'date', date: opens.kind === 'date' ? opens.date : '' } : { kind: 'moment', moment: opens.kind === 'moment' ? opens.moment : MOMENTS[0] })}
-                style={[styles.option, on && { borderColor: colors.accent, backgroundColor: '#26232F' }]}>
-                <View style={[styles.radio, on && { borderColor: colors.accent }]}>{on && <View style={styles.dot} />}</View>
-                <View style={{ flex: 1 }}>
-                  <Text weight={400}>{item.label}</Text>
-                  <Text size={13} color={colors.faint}>
-                    {item.about}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {opens.kind === 'moment' && (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {MOMENTS.map((moment) => {
-              const on = opens.moment === moment;
+          <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+            {kinds.map((item) => {
+              const on = opens.kind === item.kind;
               return (
-                <Pressable key={moment} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => onChange({ kind: 'moment', moment })} style={[styles.chip, on && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
-                  <Text size={14} weight={500} color={on ? colors.onAccent : '#C9C4D3'}>
-                    {moment}
-                  </Text>
+                <Pressable
+                  key={item.kind}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: on }}
+                  onPress={() => onChange(item.kind === 'handbook' ? { kind: 'handbook' } : item.kind === 'date' ? { kind: 'date', date: opens.kind === 'date' ? opens.date : '' } : { kind: 'moment', moment: opens.kind === 'moment' ? opens.moment : MOMENTS[0] })}
+                  style={[styles.option, on && { borderColor: colors.accent, backgroundColor: '#26232F' }]}>
+                  <View style={[styles.radio, on && { borderColor: colors.accent }]}>{on && <View style={styles.dot} />}</View>
+                  <View style={{ flex: 1 }}>
+                    <Text weight={400}>{item.label}</Text>
+                    <Text size={13} color={colors.faint}>
+                      {item.about}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
           </View>
-        )}
 
-        {opens.kind === 'date' && (
-          <TextInput
-            value={opens.date}
-            onChangeText={(date) => onChange({ kind: 'date', date })}
-            placeholder="The day, e.g. June 14, 2030"
-            placeholderTextColor={colors.faint}
-            accessibilityLabel="The day it opens"
-            style={styles.date}
-          />
-        )}
+          {opens.kind === 'moment' && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {MOMENTS.map((moment) => {
+                const on = opens.moment === moment;
+                return (
+                  <Pressable key={moment} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => onChange({ kind: 'moment', moment })} style={[styles.chip, on && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+                    <Text size={14} weight={500} color={on ? colors.onAccent : '#C9C4D3'}>
+                      {moment}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
 
-        <View style={styles.how}>
-          <Icon name="bell" size={20} />
-          <Text size={14} color={colors.soft} style={{ flex: 1, lineHeight: 22 }}>
-            {how}
-          </Text>
+          {opens.kind === 'date' && (
+            <TextInput
+              value={opens.date}
+              onChangeText={(date) => onChange({ kind: 'date', date })}
+              placeholder="The day, e.g. June 14, 2030"
+              placeholderTextColor={colors.faint}
+              accessibilityLabel="The day it opens"
+              style={styles.date}
+            />
+          )}
+
+          <View style={styles.how}>
+            <Icon name="bell" size={20} />
+            <Text size={14} color={colors.soft} style={{ flex: 1, lineHeight: 22 }}>
+              {how}
+            </Text>
+          </View>
         </View>
-      </View>
+      </SheetFrame>
     </Modal>
   );
 }

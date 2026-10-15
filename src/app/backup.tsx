@@ -8,7 +8,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, TextInput, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { BackButton, Button, Card, Eyebrow, Row, Screen, Text } from '@/components/ui';
+import { BackButton, Button, Card, Eyebrow, Row, Screen, SheetFrame, Text } from '@/components/ui';
 import { openBackup, pickBackup, saveBackup } from '@/lib/backup';
 import { colors, fonts } from '@/lib/theme';
 
@@ -173,28 +173,30 @@ function PasswordSheet({ ask: current, onClose }: { ask: Ask; onClose: () => voi
 
   return (
     <Modal visible={current !== null} transparent animationType="slide" onRequestClose={close}>
-      <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close" />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
-        <Text size={22}>{saving ? 'Lock your backup' : 'Open your backup'}</Text>
-        <Text size={14} color={colors.muted} style={{ lineHeight: 21 }}>
-          {saving ? 'Choose a password. You’ll need it to restore, and it can’t be recovered, so keep it somewhere safe.' : 'Enter the password you chose when you saved it.'}
-        </Text>
-        <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="Password" placeholderTextColor={colors.faint} accessibilityLabel="Password" autoFocus style={styles.input} />
-        {saving && <TextInput value={again} onChangeText={setAgain} secureTextEntry placeholder="The same password again" placeholderTextColor={colors.faint} accessibilityLabel="Password again" style={styles.input} />}
-        {problem ? (
-          <Text size={14} color={colors.accent}>
-            {problem}
+      <SheetFrame>
+        <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close" />
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
+          <Text size={22}>{saving ? 'Lock your backup' : 'Open your backup'}</Text>
+          <Text size={14} color={colors.muted} style={{ lineHeight: 21 }}>
+            {saving ? 'Choose a password. You’ll need it to restore, and it can’t be recovered, so keep it somewhere safe.' : 'Enter the password you chose when you saved it.'}
           </Text>
-        ) : null}
-        {busy ? (
-          <View style={{ height: 54, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10 }}>
-            <ActivityIndicator color={colors.accent} />
-            <Text color={colors.muted}>{saving ? 'Locking…' : 'Opening…'}</Text>
-          </View>
-        ) : (
-          <Button label={saving ? 'Save backup file' : 'Restore'} onPress={go} />
-        )}
-      </View>
+          <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="Password" placeholderTextColor={colors.faint} accessibilityLabel="Password" autoFocus style={styles.input} />
+          {saving && <TextInput value={again} onChangeText={setAgain} secureTextEntry placeholder="The same password again" placeholderTextColor={colors.faint} accessibilityLabel="Password again" style={styles.input} />}
+          {problem ? (
+            <Text size={14} color={colors.accent}>
+              {problem}
+            </Text>
+          ) : null}
+          {busy ? (
+            <View style={{ height: 54, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10 }}>
+              <ActivityIndicator color={colors.accent} />
+              <Text color={colors.muted}>{saving ? 'Locking…' : 'Opening…'}</Text>
+            </View>
+          ) : (
+            <Button label={saving ? 'Save backup file' : 'Restore'} onPress={go} />
+          )}
+        </View>
+      </SheetFrame>
     </Modal>
   );
 }

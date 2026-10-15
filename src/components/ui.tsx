@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text as RNText, View, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text as RNText, View, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/Icon';
@@ -20,24 +21,39 @@ export function Eyebrow({ children, color = colors.faint, style }: { children: R
   );
 }
 
+/** The floating tab bar: its height, and how far it sits above the bottom of the screen. */
+export const TAB_BAR_HEIGHT = 64;
+export const tabBarBottom = (insetsBottom: number) => (insetsBottom > 0 ? insetsBottom - 6 : 12);
+
 /**
- * A page: scrolls (with no scroll bar), clears the status bar, and leaves room at the foot for the tab
- * bar (`tabs`) or a bottom bar of buttons (`footer`, kept in view).
+ * A page: scrolls (with no scroll bar), clears the status bar, and leaves just enough room at the foot
+ * for the floating tab bar (`tabs`) or a bottom bar of buttons (`footer`, kept in view). The field
+ * being typed in, and the line being typed, stay above the keyboard.
  */
 export function Screen({ children, tabs, footer, gap = 16 }: { children: ReactNode; tabs?: boolean; footer?: ReactNode; gap?: number }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={24}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
+        alwaysBounceVertical={false}
         keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 18, paddingBottom: tabs ? 110 + insets.bottom : footer ? 24 : insets.bottom + 32, gap }}>
+        contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 18, paddingBottom: tabs ? tabBarBottom(insets.bottom) + TAB_BAR_HEIGHT + 20 : footer ? 20 : insets.bottom + 20, gap }}>
         {children}
-      </ScrollView>
+      </KeyboardAwareScrollView>
       {footer && <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>{footer}</View>}
     </View>
+  );
+}
+
+/** What goes inside a bottom sheet's Modal (the backdrop, then the sheet): it rises with the keyboard. */
+export function SheetFrame({ children }: { children: ReactNode }) {
+  return (
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      {children}
+    </KeyboardAvoidingView>
   );
 }
 
@@ -84,7 +100,7 @@ export function Toggle({ value, onChange, label }: { value: boolean; onChange: (
   );
 }
 
-/** Two or three choices side by side, one picked. */
+/** Two or three choices side by side, one picked, as pills. */
 export function Segmented<T extends string | number>({ options, value, onChange, label }: { options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; label: string }) {
   return (
     <View accessibilityRole="tablist" accessibilityLabel={label} style={styles.segmented}>
@@ -154,12 +170,12 @@ export function Row({ icon, title, note, right, onPress, first }: { icon?: IconN
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden' },
   tile: { backgroundColor: colors.raised, alignItems: 'center', justifyContent: 'center' },
-  button: { height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18 },
+  button: { height: 52, borderRadius: 999, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18 },
   outline: { borderWidth: 1, borderColor: colors.outline },
   toggle: { width: 51, height: 31, borderRadius: 16, padding: 2, justifyContent: 'center' },
   knob: { width: 27, height: 27, borderRadius: 14 },
-  segmented: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: 14, padding: 4, gap: 4 },
-  segment: { flex: 1, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  segmented: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: 999, padding: 4, gap: 4 },
+  segment: { flex: 1, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   round: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
   rowLine: { borderTopWidth: 1, borderTopColor: colors.line },

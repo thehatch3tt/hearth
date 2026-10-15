@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
@@ -50,7 +51,7 @@ export default function Welcome() {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 20) + 12 }]}>
+    <KeyboardAvoidingView behavior="padding" style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 20) + 12 }]}>
       {step > 1 && (
         <View style={styles.top}>
           <BackButton onPress={() => setStep(step - 1)} />
@@ -180,7 +181,7 @@ export default function Welcome() {
           </View>
         </>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

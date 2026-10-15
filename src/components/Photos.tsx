@@ -9,7 +9,7 @@ import { Alert, Modal, Platform, Pressable, StyleSheet, TextInput, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { Text } from '@/components/ui';
+import { SheetFrame, Text } from '@/components/ui';
 import { forget, keep, photoFile } from '@/lib/media';
 import { newId, type Photo } from '@/lib/store';
 import { colors, fonts } from '@/lib/theme';
@@ -111,37 +111,39 @@ function Viewer({ photo, readOnly, onClose, onRemove, onCaption }: { photo: Phot
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={!!photo} animationType="fade" onRequestClose={onClose} transparent>
-      {photo && (
-        <View style={[styles.viewer, { paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
-          <View style={styles.bar}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Close" hitSlop={8} onPress={onClose} style={styles.round}>
-              <Icon name="close" size={16} color={colors.ink} strokeWidth={2} />
-            </Pressable>
-            {!readOnly && (
-              <Pressable accessibilityRole="button" accessibilityLabel="Delete this photo" hitSlop={8} onPress={() => onRemove(photo)} style={styles.round}>
-                <Icon name="trash" size={16} color={colors.ink} />
+      <SheetFrame>
+        {photo && (
+          <View style={[styles.viewer, { paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
+            <View style={styles.bar}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close" hitSlop={8} onPress={onClose} style={styles.round}>
+                <Icon name="close" size={16} color={colors.ink} strokeWidth={2} />
               </Pressable>
+              {!readOnly && (
+                <Pressable accessibilityRole="button" accessibilityLabel="Delete this photo" hitSlop={8} onPress={() => onRemove(photo)} style={styles.round}>
+                  <Icon name="trash" size={16} color={colors.ink} />
+                </Pressable>
+              )}
+            </View>
+            <Image source={{ uri: photoFile(photo.id).uri }} style={{ flex: 1 }} contentFit="contain" />
+            {readOnly ? (
+              photo.caption?.trim() ? (
+                <Text size={16} color={colors.soft} style={{ textAlign: 'center', paddingHorizontal: 8 }}>
+                  {photo.caption}
+                </Text>
+              ) : null
+            ) : (
+              <TextInput
+                value={photo.caption ?? ''}
+                onChangeText={(caption) => onCaption(photo, caption)}
+                placeholder="A few words about it (optional)"
+                placeholderTextColor={colors.faint}
+                accessibilityLabel="Caption"
+                style={styles.caption}
+              />
             )}
           </View>
-          <Image source={{ uri: photoFile(photo.id).uri }} style={{ flex: 1 }} contentFit="contain" />
-          {readOnly ? (
-            photo.caption?.trim() ? (
-              <Text size={16} color={colors.soft} style={{ textAlign: 'center', paddingHorizontal: 8 }}>
-                {photo.caption}
-              </Text>
-            ) : null
-          ) : (
-            <TextInput
-              value={photo.caption ?? ''}
-              onChangeText={(caption) => onCaption(photo, caption)}
-              placeholder="A few words about it (optional)"
-              placeholderTextColor={colors.faint}
-              accessibilityLabel="Caption"
-              style={styles.caption}
-            />
-          )}
-        </View>
-      )}
+        )}
+      </SheetFrame>
     </Modal>
   );
 }

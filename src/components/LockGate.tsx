@@ -52,7 +52,7 @@ export function LockGate({ children }: { children: ReactNode }) {
   }, [showing]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {children}
       {showing && (
         <View style={[StyleSheet.absoluteFill, styles.cover, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 20) + 12 }]}>

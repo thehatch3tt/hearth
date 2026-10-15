@@ -126,6 +126,6 @@ const styles = StyleSheet.create({
   line: { borderTopWidth: 1, borderTopColor: colors.line },
   initial: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.raised, alignItems: 'center', justifyContent: 'center' },
   remove: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  dashed: { height: 46, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.outline, alignItems: 'center', justifyContent: 'center' },
+  dashed: { height: 48, borderRadius: 999, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.outline, alignItems: 'center', justifyContent: 'center' },
   input: { height: 48, borderRadius: 14, borderWidth: 1, borderColor: colors.selected, backgroundColor: colors.background, color: colors.ink, paddingHorizontal: 14, fontFamily: fonts[300], fontSize: 16 },
 });

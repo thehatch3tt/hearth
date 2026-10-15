@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   field: { color: colors.ink, fontFamily: fonts[300], fontSize: 15, paddingVertical: 2 },
   remove: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  dashed: { height: 46, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.outline, alignItems: 'center', justifyContent: 'center' },
+  dashed: { height: 48, borderRadius: 999, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.outline, alignItems: 'center', justifyContent: 'center' },
   prompt: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 17, borderWidth: 1, borderColor: colors.selected },
   body: { minHeight: 180, borderRadius: 18, backgroundColor: colors.card, color: colors.ink, padding: 16, fontFamily: fonts[300], fontSize: 17, lineHeight: 26 },
 });
